@@ -25,7 +25,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-vfa=)68j^q1%-@3tzuuuf8_h5wie!getfh!e0m$msy_l-j*#dx'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ['*']
 
@@ -127,3 +127,6 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 if os.environ.get('RENDER'):
     import subprocess
     subprocess.run(["python", "manage.py", "migrate"])
+
+# Reduce DB connections
+CONN_MAX_AGE = 0
