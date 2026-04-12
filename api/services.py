@@ -48,9 +48,11 @@ def process_hourly_consumption():
     now = timezone.now()
     one_hour_ago = now - timedelta(hours=1)
 
-    records = WaterLevel.objects.filter(
+    records = list(
+    WaterLevel.objects.filter(
         created_at__gte=one_hour_ago
-    ).order_by("created_at")
+    ).order_by("created_at")[:200]   # limit records
+    )
 
     if records.count() < 2:
         return

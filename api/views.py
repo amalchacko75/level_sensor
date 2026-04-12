@@ -19,7 +19,7 @@ def save_water_level(request):
     )
 
     # 🔥 Process logic
-    process_hourly_consumption()
+    # process_hourly_consumption()
 
     return Response({"status": "saved"})
 
