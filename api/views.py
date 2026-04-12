@@ -2,6 +2,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import WaterLevel
 from .serializers import WaterLevelSerializer
+from django.contrib.auth.models import User
 
 
 @api_view(['POST'])
@@ -37,3 +38,12 @@ def latest_water_level(request):
 
     serializer = WaterLevelSerializer(obj)
     return Response(serializer.data)
+
+
+def create_admin_user():
+    if not User.objects.filter(username='admin').exists():
+        User.objects.create_superuser(
+            username='admin',
+            email='your_email@gmail.com',
+            password='admin123'
+        )
