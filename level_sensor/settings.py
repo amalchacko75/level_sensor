@@ -123,10 +123,3 @@ STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-
-if 'runserver' not in sys.argv:
-    try:
-        from api.views import create_admin_user
-        create_admin_user()
-    except Exception as e:
-        print(e)
