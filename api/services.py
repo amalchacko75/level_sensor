@@ -54,7 +54,7 @@ def process_hourly_consumption():
     ).order_by("created_at")[:200]   # limit records
     )
 
-    if records.count() < 2:
+    if len(records) < 2:
         return
 
     # 🔥 Detect pump/leak events
