@@ -54,6 +54,11 @@ def process_hourly_consumption():
     ).order_by("created_at")[:200]   # limit records
     )
 
+    # 🔥 1. FIRST CHECK EMPTY TANK
+    if handle_empty_tank(records):
+        return
+    
+    # 🔥 2. CHECK MINIMUM DATA
     if len(records) < 2:
         return
 
@@ -81,11 +86,38 @@ def process_hourly_consumption():
     HourlyWaterConsumption.objects.create(
         date=now.date(),
         hour=now.hour,
-        start_level=records.first().percentage,
-        end_level=records.last().percentage,
+        start_level=records[0].percentage,
+        end_level=records[-1].percentage,
         usage_percentage=total_percentage_drop,
         usage_liters=usage_liters
     )
 
     # 🔥 Clean raw data
     records.delete()
+
+
+def handle_empty_tank(records):
+    # Check last few readings
+    zero_count = sum(1 for r in records if r.percentage == 0)
+
+    if zero_count >= 10:  # threshold (10 consecutive zeros)
+        print("⚠️ Tank Empty Detected")
+
+        # Optional: create event
+        from .models import WaterEvent
+
+        WaterEvent.objects.create(
+            event_type='leak',  # or create new type 'empty'
+            start_time=records[-1].created_at,
+            start_level=0,
+            end_level=0,
+            change_percentage=0,
+            change_liters=0
+        )
+
+        # 🔥 Clear raw data
+        WaterLevel.objects.all().delete()
+
+        return True
+
+    return False
