@@ -1,6 +1,14 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import WaterLevel
+from .models import HourlyWaterConsumption
+from django.utils import timezone
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from django.db.models import Sum
+from .models import WaterEvent
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
 from .services import process_hourly_consumption
 
 
@@ -22,11 +30,6 @@ def save_water_level(request):
     # process_hourly_consumption()
 
     return Response({"status": "saved"})
-
-from .models import HourlyWaterConsumption
-from django.utils import timezone
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
 
 
 @api_view(['GET'])
@@ -50,7 +53,6 @@ def hourly_usage(request):
 
     return Response(result)
 
-from django.db.models import Sum
 
 @api_view(['GET'])
 def daily_usage(request):
@@ -65,7 +67,7 @@ def daily_usage(request):
         "total_usage_liters": total['total'] or 0
     })
 
-from .models import WaterEvent
+
 
 @api_view(['GET'])
 def events_list(request):
@@ -83,3 +85,19 @@ def events_list(request):
         })
 
     return Response(result)
+
+
+
+@api_view(['GET'])
+def run_processing(request):
+    try:
+        process_hourly_consumption()
+        return Response({
+            "status": "success",
+            "message": "Hourly processing completed"
+        })
+    except Exception as e:
+        return Response({
+            "status": "error",
+            "message": str(e)
+        })
