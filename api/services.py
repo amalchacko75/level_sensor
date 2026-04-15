@@ -92,22 +92,36 @@ def process_hourly_consumption():
         usage_liters=usage_liters
     )
 
-    # 🔥 Clean raw data
-    records.delete()
+    # 🔥 Clean only processed records
+    ids = [r.id for r in records]
+
+    WaterLevel.objects.filter(id__in=ids).delete()
+
+    # 🔥 Clean old data (older than 2 hours)
+    two_hours_ago = now - timedelta(hours=2)
+
+    WaterLevel.objects.filter(
+        created_at__lt=two_hours_ago
+    ).delete()
 
 
 def handle_empty_tank(records):
-    # Check last few readings
-    zero_count = sum(1 for r in records if r.percentage == 0)
+    # Check last consecutive readings only
+    consecutive_zeros = 0
 
-    if zero_count >= 10:  # threshold (10 consecutive zeros)
+    for r in reversed(records):  # check from latest
+        if r.percentage <= 1:  # allow small noise
+            consecutive_zeros += 1
+        else:
+            break  # stop when non-zero found
+
+    if consecutive_zeros >= 5:  # threshold
         print("⚠️ Tank Empty Detected")
 
-        # Optional: create event
         from .models import WaterEvent
 
         WaterEvent.objects.create(
-            event_type='leak',  # or create new type 'empty'
+            event_type='empty',
             start_time=records[-1].created_at,
             start_level=0,
             end_level=0,
@@ -115,8 +129,9 @@ def handle_empty_tank(records):
             change_liters=0
         )
 
-        # 🔥 Clear raw data
-        WaterLevel.objects.all().delete()
+        # delete only recent records
+        ids = [r.id for r in records]
+        WaterLevel.objects.filter(id__in=ids).delete()
 
         return True
 
