@@ -46,7 +46,7 @@ def detect_events(records):
 # 🔥 HOURLY CONSUMPTION
 def process_hourly_consumption():
     now = timezone.now()
-    ten_minutes_ago = now - timedelta(minutes=10)
+    ten_minutes_ago = now - timedelta(minutes=60)
 
     records = list(
     WaterLevel.objects.filter(
