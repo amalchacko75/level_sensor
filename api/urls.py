@@ -12,5 +12,5 @@ urlpatterns = [
     path('events/', events_list),
     path('process/', run_processing),
     path('dashboard/', dashboard),
-    path('api/current-level/', current_level),
+    path('current-level/', current_level),
 ]
