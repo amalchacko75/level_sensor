@@ -6,6 +6,8 @@
 
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="manifest" href="/static/manifest.json">
+  <meta name="theme-color" content="#2196f3">
 
   <style>
     body {
@@ -56,6 +58,12 @@
     }
   </style>
 </head>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/static/service-worker.js')
+    .then(() => console.log("Service Worker Registered"));
+}
+</script>
 
 <body>
 
