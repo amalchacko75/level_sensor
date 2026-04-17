@@ -121,12 +121,22 @@ if ('serviceWorker' in navigator) {
 
 <script>
 
-// 🕒 Convert UTC → IST
+// 🕒 Convert UTC hour → IST correctly
 function convertToIST(hour) {
-  let date = new Date();
-  date.setUTCHours(hour);
-  let ist = new Date(date.getTime() + (5.5 * 60 * 60 * 1000));
-  return ist.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  // Create a UTC date using today's date
+  const now = new Date();
+  const utcDate = new Date(Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate(),
+    hour, 0, 0
+  ));
+
+  return utcDate.toLocaleTimeString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
 }
 
 // 📊 Hourly usage
@@ -150,10 +160,6 @@ fetch('/api/hourly/')
     }
   });
 
-  if (data.length > 0) {
-    document.getElementById('currentLevel').innerText =
-      Math.round(data[data.length - 1].end) + "%";
-  }
 });
 
 // 📊 Daily usage
