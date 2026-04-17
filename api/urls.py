@@ -11,5 +11,5 @@ urlpatterns = [
     path('daily/', daily_usage),
     path('events/', events_list),
     path('process/', run_processing),
-    path('', dashboard),
+    path('dashboard/', dashboard),
 ]

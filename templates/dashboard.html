@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Water Monitor</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body {
+      font-family: Arial;
+      margin: 0;
+      background: #f5f7fa;
+    }
+
+    .container {
+      padding: 15px;
+    }
+
+    h2 {
+      text-align: center;
+    }
+
+    .card {
+      background: white;
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .stat {
+      text-align: center;
+    }
+
+    .stat h3 {
+      margin: 5px 0;
+    }
+
+    ul {
+      padding-left: 20px;
+    }
+
+    /* 📱 Mobile optimization */
+    @media (max-width: 600px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <h2>💧 Water Tank Monitor</h2>
+
+  <!-- Stats -->
+  <div class="grid">
+    <div class="card stat">
+      <h3 id="currentLevel">--%</h3>
+      <p>Current Level</p>
+    </div>
+
+    <div class="card stat">
+      <h3 id="dailyUsage">-- L</h3>
+      <p>Today's Usage</p>
+    </div>
+  </div>
+
+  <!-- Chart -->
+  <div class="card">
+    <h3>Usage Chart</h3>
+    <canvas id="usageChart"></canvas>
+  </div>
+
+  <!-- Events -->
+  <div class="card">
+    <h3>Recent Events 🚨</h3>
+    <ul id="events"></ul>
+  </div>
+
+</div>
+
+<script>
+
+// 📊 Hourly usage
+fetch('/api/hourly/')
+.then(res => res.json())
+.then(data => {
+  const labels = data.map(d => d.hour);
+  const values = data.map(d => d.usage_liters);
+
+  new Chart(document.getElementById('usageChart'), {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Liters',
+        data: values
+      }]
+    }
+  });
+
+  if (data.length > 0) {
+    document.getElementById('currentLevel').innerText =
+      Math.round(data[data.length - 1].end) + "%";
+  }
+});
+
+// 📊 Daily usage
+fetch('/api/daily/')
+.then(res => res.json())
+.then(data => {
+  document.getElementById('dailyUsage').innerText =
+    Math.round(data.total_usage_liters) + " L";
+});
+
+// 🚨 Events
+fetch('/api/events/')
+.then(res => res.json())
+.then(data => {
+  const list = document.getElementById('events');
+
+  data.forEach(e => {
+    const li = document.createElement('li');
+    li.innerText = `${e.type} at ${new Date(e.time).toLocaleTimeString()}`;
+    list.appendChild(li);
+  });
+});
+
+</script>
+
+</body>
+</html>
