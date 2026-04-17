@@ -3,14 +3,11 @@ from rest_framework.response import Response
 from .models import WaterLevel
 from .models import HourlyWaterConsumption
 from django.utils import timezone
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
 from django.db.models import Sum
 from .models import WaterEvent
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
 from .services import process_hourly_consumption
 from django.shortcuts import render
+from .models import WaterLevel
 
 
 @api_view(['POST'])
@@ -107,3 +104,19 @@ def run_processing(request):
 
 def dashboard(request):
     return render(request, "dashboard.html")
+
+
+
+
+@api_view(['GET'])
+def current_level(request):
+    latest = WaterLevel.objects.order_by('-created_at').first()
+
+    if not latest:
+        return Response({"level": 0})
+
+    return Response({
+        "level": latest.percentage,
+        "distance": latest.distance,
+        "time": latest.created_at
+    })

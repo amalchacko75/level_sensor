@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import (
-    daily_usage, dashboard, events_list, 
+    current_level, daily_usage, dashboard, events_list, 
     hourly_usage, run_processing, 
     save_water_level
 )
@@ -12,4 +12,5 @@ urlpatterns = [
     path('events/', events_list),
     path('process/', run_processing),
     path('dashboard/', dashboard),
+    path('api/current-level/', current_level),
 ]
