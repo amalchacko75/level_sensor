@@ -10,6 +10,7 @@ from .models import WaterEvent
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .services import process_hourly_consumption
+from django.shortcuts import render
 
 
 @api_view(['POST'])
@@ -101,3 +102,8 @@ def run_processing(request):
             "status": "error",
             "message": str(e)
         })
+    
+
+
+def dashboard(request):
+    return render(request, "dashboard.html")

@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import (
-    daily_usage, events_list, 
+    daily_usage, dashboard, events_list, 
     hourly_usage, run_processing, 
     save_water_level
 )
@@ -11,4 +11,5 @@ urlpatterns = [
     path('daily/', daily_usage),
     path('events/', events_list),
     path('process/', run_processing),
+    path('', dashboard),
 ]
