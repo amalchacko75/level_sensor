@@ -26,10 +26,10 @@
 
     .card {
       background: white;
-      border-radius: 10px;
+      border-radius: 12px;
       padding: 15px;
       margin-bottom: 15px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      box-shadow: 0 3px 10px rgba(0,0,0,0.08);
     }
 
     .grid {
@@ -44,10 +44,30 @@
 
     .stat h3 {
       margin: 5px 0;
+      font-size: 22px;
     }
 
-    ul {
-      padding-left: 20px;
+    /* Events UI */
+    .event {
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    .pump {
+      background: #e3f2fd;
+      color: #0d47a1;
+    }
+
+    .leak {
+      background: #ffebee;
+      color: #b71c1c;
+    }
+
+    .empty {
+      background: #fff3e0;
+      color: #e65100;
     }
 
     /* 📱 Mobile optimization */
@@ -58,6 +78,7 @@
     }
   </style>
 </head>
+
 <script>
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/static/service-worker.js')
@@ -92,19 +113,28 @@ if ('serviceWorker' in navigator) {
 
   <!-- Events -->
   <div class="card">
-    <h3>Recent Events 🚨</h3>
-    <ul id="events"></ul>
+    <h3>🚨 Recent Events</h3>
+    <div id="events"></div>
   </div>
 
 </div>
 
 <script>
 
+// 🕒 Convert UTC → IST
+function convertToIST(hour) {
+  let date = new Date();
+  date.setUTCHours(hour);
+  let ist = new Date(date.getTime() + (5.5 * 60 * 60 * 1000));
+  return ist.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
 // 📊 Hourly usage
 fetch('/api/hourly/')
 .then(res => res.json())
 .then(data => {
-  const labels = data.map(d => d.hour);
+
+  const labels = data.map(d => convertToIST(d.hour));
   const values = data.map(d => d.usage_liters);
 
   new Chart(document.getElementById('usageChart'), {
@@ -112,8 +142,10 @@ fetch('/api/hourly/')
     data: {
       labels: labels,
       datasets: [{
-        label: 'Liters',
-        data: values
+        label: 'Water Usage (Liters)',
+        data: values,
+        borderWidth: 2,
+        tension: 0.4
       }]
     }
   });
@@ -132,16 +164,34 @@ fetch('/api/daily/')
     Math.round(data.total_usage_liters) + " L";
 });
 
-// 🚨 Events
+// 🚨 Events (Styled)
 fetch('/api/events/')
 .then(res => res.json())
 .then(data => {
-  const list = document.getElementById('events');
+  const container = document.getElementById('events');
+
+  container.innerHTML = "";
+
+  data.reverse(); // latest first
 
   data.forEach(e => {
-    const li = document.createElement('li');
-    li.innerText = `${e.type} at ${new Date(e.time).toLocaleTimeString()}`;
-    list.appendChild(li);
+
+    let typeClass = "pump";
+    if (e.type === "leak") typeClass = "leak";
+    if (e.type === "empty") typeClass = "empty";
+
+    let time = new Date(e.time);
+    let istTime = new Date(time.getTime() + (5.5 * 60 * 60 * 1000));
+
+    const div = document.createElement('div');
+    div.className = `event ${typeClass}`;
+
+    div.innerHTML = `
+      <strong>${e.type.replace("_", " ").toUpperCase()}</strong><br>
+      🕒 ${istTime.toLocaleTimeString()}
+    `;
+
+    container.appendChild(div);
   });
 });
 
