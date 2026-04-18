@@ -29,6 +29,7 @@ class WaterEvent(models.Model):
     EVENT_TYPE_CHOICES = (
         ('pump_on', 'Pump ON'),
         ('leak', 'Leak'),
+        ('empty', 'Empty'),  # ✅ added
     )
 
     event_type = models.CharField(max_length=20, choices=EVENT_TYPE_CHOICES)
@@ -43,6 +44,9 @@ class WaterEvent(models.Model):
     change_liters = models.FloatField()
 
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('event_type', 'start_time')  # ✅ prevents duplicates
 
     def __str__(self):
         return f"{self.event_type} at {self.start_time}"

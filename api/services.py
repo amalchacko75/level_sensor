@@ -5,7 +5,28 @@ from .models import WaterLevel, HourlyWaterConsumption, WaterEvent
 TANK_CAPACITY = 1750  # liters
 
 
-# 🔥 EVENT DETECTION
+# 🔥 SAFE EVENT CREATION (NO DUPLICATES)
+def create_event(event_type, time, start, end, change_pct, change_liters):
+    exists = WaterEvent.objects.filter(
+        event_type=event_type,
+        start_time=time
+    ).exists()
+
+    if exists:
+        return
+
+    WaterEvent.objects.create(
+        event_type=event_type,
+        start_time=time,
+        end_time=time,
+        start_level=start,
+        end_level=end,
+        change_percentage=change_pct,
+        change_liters=change_liters
+    )
+
+
+# 🔥 EVENT DETECTION (FIXED)
 def detect_events(records):
     prev = None
 
@@ -17,13 +38,13 @@ def detect_events(records):
             if diff > 5:
                 liters = (diff / 100) * TANK_CAPACITY
 
-                WaterEvent.objects.create(
-                    event_type='pump_on',
-                    start_time=prev.created_at,
-                    start_level=prev.percentage,
-                    end_level=record.percentage,
-                    change_percentage=diff,
-                    change_liters=liters
+                create_event(
+                    'pump_on',
+                    record.created_at,
+                    prev.percentage,
+                    record.percentage,
+                    diff,
+                    liters
                 )
 
             # 💧 Leak
@@ -31,40 +52,79 @@ def detect_events(records):
                 drop = abs(diff)
                 liters = (drop / 100) * TANK_CAPACITY
 
-                WaterEvent.objects.create(
-                    event_type='leak',
-                    start_time=prev.created_at,
-                    start_level=prev.percentage,
-                    end_level=record.percentage,
-                    change_percentage=drop,
-                    change_liters=liters
+                create_event(
+                    'leak',
+                    record.created_at,
+                    prev.percentage,
+                    record.percentage,
+                    drop,
+                    liters
                 )
 
         prev = record
 
 
-# 🔥 HOURLY CONSUMPTION
+# 🔥 EMPTY TANK HANDLING (WITH COOLDOWN)
+def handle_empty_tank(records):
+    consecutive_zeros = 0
+
+    for r in reversed(records):
+        if r.percentage <= 1:
+            consecutive_zeros += 1
+        else:
+            break
+
+    if consecutive_zeros >= 5:
+        print("⚠️ Tank Empty Detected")
+
+        # ⛔ cooldown: avoid duplicate empty events
+        last_empty = WaterEvent.objects.filter(
+            event_type='empty'
+        ).order_by('-start_time').first()
+
+        if last_empty and (timezone.now() - last_empty.start_time < timedelta(minutes=30)):
+            return True
+
+        create_event(
+            'empty',
+            records[-1].created_at,
+            0,
+            0,
+            0,
+            0
+        )
+
+        # delete only processed records
+        ids = [r.id for r in records]
+        WaterLevel.objects.filter(id__in=ids).delete()
+
+        return True
+
+    return False
+
+
+# 🔥 HOURLY / 10-MIN PROCESSING
 def process_hourly_consumption():
     now = timezone.now()
     ten_minutes_ago = now - timedelta(minutes=60)
 
-    records = list(
-    WaterLevel.objects.filter(
+    queryset = WaterLevel.objects.filter(
         created_at__gte=ten_minutes_ago
-    ).order_by("created_at")[:200]   # limit records
-    )
+    ).order_by("created_at")[:200]
 
-    # 🔥 1. FIRST CHECK EMPTY TANK
+    records = list(queryset)
+
+    # 🔥 CHECK EMPTY FIRST
     if handle_empty_tank(records):
         return
-    
-    # 🔥 2. CHECK MINIMUM DATA
+
     if len(records) < 2:
         return
 
-    # 🔥 Detect pump/leak events
+    # 🔥 EVENT DETECTION
     detect_events(records)
 
+    # 🔥 USAGE CALCULATION
     total_percentage_drop = 0
     prev = None
 
@@ -72,7 +132,7 @@ def process_hourly_consumption():
         if prev is not None:
             diff = prev.percentage - record.percentage
 
-            # ignore noise + refill
+            # ignore noise
             if diff > 0.5:
                 total_percentage_drop += diff
 
@@ -83,56 +143,23 @@ def process_hourly_consumption():
 
     usage_liters = (total_percentage_drop / 100) * TANK_CAPACITY
 
-    HourlyWaterConsumption.objects.create(
+    # inside process_hourly_consumption()
+
+    HourlyWaterConsumption.objects.update_or_create(
         date=now.date(),
         hour=now.hour,
-        start_level=records[0].percentage,
-        end_level=records[-1].percentage,
-        usage_percentage=total_percentage_drop,
-        usage_liters=usage_liters
+        defaults={
+            "start_level": records[0].percentage,
+            "end_level": records[-1].percentage,
+            "usage_percentage": total_percentage_drop,
+            "usage_liters": usage_liters,
+        }
     )
 
-    # 🔥 Clean only processed records
+    # 🔥 DELETE ONLY PROCESSED RECORDS
     ids = [r.id for r in records]
-
     WaterLevel.objects.filter(id__in=ids).delete()
 
-    # 🔥 Clean old data (older than 2 hours)
+    # 🔥 CLEAN OLD DATA (> 2 hours)
     two_hours_ago = now - timedelta(hours=2)
-
-    WaterLevel.objects.filter(
-        created_at__lt=two_hours_ago
-    ).delete()
-
-
-def handle_empty_tank(records):
-    # Check last consecutive readings only
-    consecutive_zeros = 0
-
-    for r in reversed(records):  # check from latest
-        if r.percentage <= 1:  # allow small noise
-            consecutive_zeros += 1
-        else:
-            break  # stop when non-zero found
-
-    if consecutive_zeros >= 5:  # threshold
-        print("⚠️ Tank Empty Detected")
-
-        from .models import WaterEvent
-
-        WaterEvent.objects.create(
-            event_type='empty',
-            start_time=records[-1].created_at,
-            start_level=0,
-            end_level=0,
-            change_percentage=0,
-            change_liters=0
-        )
-
-        # delete only recent records
-        ids = [r.id for r in records]
-        WaterLevel.objects.filter(id__in=ids).delete()
-
-        return True
-
-    return False
+    WaterLevel.objects.filter(created_at__lt=two_hours_ago).delete()

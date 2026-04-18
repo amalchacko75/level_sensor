@@ -56,13 +56,19 @@ def hourly_usage(request):
 def daily_usage(request):
     today = timezone.now().date()
 
-    total = HourlyWaterConsumption.objects.filter(
-        date=today
-    ).aggregate(total=Sum('usage_liters'))
+    leaks = WaterEvent.objects.filter(
+        event_type='leak',
+        start_time__date=today
+    )
+
+    total_usage = sum(
+    e.change_liters for e in leaks
+    if e.change_liters < 1000  # ignore unrealistic spikes
+    )
 
     return Response({
-        "date": today,
-        "total_usage_liters": total['total'] or 0
+        "date": str(today),
+        "total_usage_liters": round(total_usage, 2)
     })
 
 
