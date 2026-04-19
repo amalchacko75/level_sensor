@@ -7,7 +7,6 @@ from django.db.models import Sum
 from .models import WaterEvent
 from .services import process_hourly_consumption
 from django.shortcuts import render
-from .models import WaterLevel
 
 
 @api_view(['POST'])
@@ -56,15 +55,9 @@ def hourly_usage(request):
 def daily_usage(request):
     today = timezone.now().date()
 
-    leaks = WaterEvent.objects.filter(
-        event_type='leak',
-        start_time__date=today
-    )
-
-    total_usage = sum(
-    e.change_liters for e in leaks
-    if e.change_liters < 1000  # ignore unrealistic spikes
-    )
+    total_usage = HourlyWaterConsumption.objects.filter(
+        timestamp__date=today
+    ).aggregate(total=Sum('usage_liters'))['total'] or 0
 
     return Response({
         "date": str(today),
