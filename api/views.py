@@ -56,7 +56,7 @@ def daily_usage(request):
     today = timezone.now().date()
 
     total_usage = HourlyWaterConsumption.objects.filter(
-        timestamp__date=today
+        date=today
     ).aggregate(total=Sum('usage_liters'))['total'] or 0
 
     return Response({
