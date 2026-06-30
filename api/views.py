@@ -11,22 +11,28 @@ from django.shortcuts import render
 
 @api_view(['POST'])
 def save_water_level(request):
+
     percentage = request.data.get("percentage")
     distance = request.data.get("distance")
+
+    battery_voltage = request.data.get("battery_voltage")
+    battery_percentage = request.data.get("battery_percentage")
+
     wifi_ssid = request.data.get("wifi_ssid")
     signal_strength = request.data.get("signal_strength")
 
     WaterLevel.objects.create(
         percentage=percentage,
         distance=distance,
+        battery_voltage=battery_voltage,
+        battery_percentage=battery_percentage,
         wifi_ssid=wifi_ssid,
         signal_strength=signal_strength
     )
 
-    # 🔥 Process logic
-    # process_hourly_consumption()
-
-    return Response({"status": "saved"})
+    return Response({
+        "status": "saved"
+    })
 
 
 @api_view(['GET'])

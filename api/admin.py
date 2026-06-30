@@ -4,7 +4,15 @@ from .models import WaterLevel, HourlyWaterConsumption, WaterEvent
 
 @admin.register(WaterLevel)
 class WaterLevelAdmin(admin.ModelAdmin):
-    list_display = ('percentage', 'distance', 'wifi_ssid', 'signal_strength', 'created_at')
+    list_display = (
+        'percentage', 
+        'distance', 
+        'wifi_ssid', 
+        'signal_strength', 
+        'battery_voltage',
+        'battery_percentage',
+        'created_at'
+    )
 
 
 @admin.register(HourlyWaterConsumption)

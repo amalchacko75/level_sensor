@@ -6,6 +6,8 @@ class WaterLevel(models.Model):
     distance = models.FloatField(null=True, blank=True)
     wifi_ssid = models.CharField(max_length=100, null=True, blank=True)
     signal_strength = models.IntegerField(null=True, blank=True)
+    battery_voltage = models.FloatField(null=True, blank=True)
+    battery_percentage = models.IntegerField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
 
