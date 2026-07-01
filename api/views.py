@@ -118,10 +118,18 @@ def current_level(request):
     latest = WaterLevel.objects.order_by('-created_at').first()
 
     if not latest:
-        return Response({"level": 0})
+        return Response({
+            "level": 0,
+            "distance": 0,
+            "battery_voltage": 0,
+            "battery_percentage": 0,
+            "time": None
+        })
 
     return Response({
         "level": latest.percentage,
         "distance": latest.distance,
+        "battery_voltage": latest.battery_voltage,
+        "battery_percentage": latest.battery_percentage,
         "time": latest.created_at
     })
