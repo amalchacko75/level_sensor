@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import WaterLevel, HourlyWaterConsumption, WaterEvent
+from .models import DeviceToken, WaterLevel, HourlyWaterConsumption, WaterEvent
 
 
 @admin.register(WaterLevel)
@@ -37,3 +37,29 @@ class WaterEventAdmin(admin.ModelAdmin):
         'change_percentage',
         'change_liters',
     )
+
+
+@admin.register(DeviceToken)
+class DeviceTokenAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "device_type",
+        "short_token",
+        "created_at",
+    )
+
+    search_fields = (
+        "token",
+        "device_type",
+    )
+
+    list_filter = (
+        "device_type",
+    )
+
+    ordering = ("-created_at",)
+
+    def short_token(self, obj):
+        return f"{obj.token[:30]}..."
+
+    short_token.short_description = "Token"

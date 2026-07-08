@@ -1,7 +1,8 @@
 {
   "name": "Water Tank Monitor",
   "short_name": "WaterApp",
-  "start_url": "/dashboard/",
+  "start_url": "/api/dashboard/",
+  "scope": "/api/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#2196f3",
