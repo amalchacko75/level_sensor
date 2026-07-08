@@ -2,7 +2,7 @@ from django.urls import path
 from .views import (
     current_level, daily_usage, dashboard, events_list, 
     hourly_usage, run_processing, save_device_token, 
-    save_water_level, service_worker, test_notification
+    save_water_level, test_notification
 )
 
 urlpatterns = [
@@ -15,5 +15,4 @@ urlpatterns = [
     path('current-level/', current_level),
     path("save-token/", save_device_token),
     path("test-notification/", test_notification),
-    path("service-worker.js", service_worker),
 ]
