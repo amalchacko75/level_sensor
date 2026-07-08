@@ -1,7 +1,7 @@
 const CACHE_NAME = "water-app-v1";
 
 const urlsToCache = [
-  "/dashboard/",
+  "/api/dashboard/",
 ];
 
 // -----------------------

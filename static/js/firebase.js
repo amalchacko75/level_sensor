@@ -16,10 +16,12 @@ const firebaseConfig = {
   messagingSenderId: "759777638228",
   appId: "1:759777638228:web:4c7d339052f80a43e07ac1"
 };
-
+console.log("Firebase JS Loaded");
 const app = initializeApp(firebaseConfig);
+console.log("Firebase Initialized");
 const messaging = getMessaging(app);
-
+console.log("Messaging Initialized");
+console.log("Current Permission:", Notification.permission);
 Notification.requestPermission()
 .then(async (permission) => {
 
