@@ -34,7 +34,19 @@ console.log("Notification Permission:", Notification.permission);
 
 if (!supported) {
     console.log("Firebase Messaging is NOT supported on this device.");
-    return;
+} else {
+
+    Notification.requestPermission().then(async (permission) => {
+
+        if (permission !== "granted") {
+            console.log("Notification permission denied.");
+            return;
+        }
+
+        await registerDevice();
+
+    });
+
 }
 Notification.requestPermission()
 .then(async (permission) => {
@@ -55,11 +67,11 @@ async function registerDevice() {
 
         // Get the existing service worker registration
         console.log("Waiting for Service Worker...");
-        let registration = await navigator.serviceWorker.getRegistration("/static/");
+        let registration = await navigator.serviceWorker.getRegistration();
 
         if (!registration) {
             registration = await navigator.serviceWorker.register(
-                "/static/service-worker.js"
+                "/service-worker.js"
             );
         }
 

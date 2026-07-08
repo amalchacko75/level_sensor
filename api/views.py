@@ -1,3 +1,6 @@
+import os
+from django.conf import settings
+from django.http import FileResponse
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import WaterLevel
@@ -219,3 +222,11 @@ def test_notification(request):
         "devices": success
 
     })
+
+
+def service_worker(request):
+    path = os.path.join(settings.BASE_DIR, "service-worker.js")
+    return FileResponse(
+        open(path, "rb"),
+        content_type="application/javascript"
+    )
