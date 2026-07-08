@@ -183,45 +183,39 @@ def save_device_token(request):
 
 
 
-@api_view(["POST"])
+@api_view(["GET", "POST"])
 def test_notification(request):
 
-    title = request.data.get(
-        "title",
-        "Water Monitor"
-    )
+    title = "Water Monitor"
+    body = "Test Notification"
 
-    body = request.data.get(
-        "body",
-        "Notification Test"
-    )
+    results = []
 
-    tokens = DeviceToken.objects.all()
-
-    success = 0
-
-    for device in tokens:
+    for device in DeviceToken.objects.all():
 
         try:
-            send_notification(
+
+            response = send_notification(
                 device.token,
                 title,
                 body
             )
 
-            success += 1
+            results.append({
+                "token": device.token[:25] + "...",
+                "status": "success",
+                "firebase": response
+            })
 
         except Exception as e:
 
-            print(e)
+            results.append({
+                "token": device.token[:25] + "...",
+                "status": "failed",
+                "error": str(e)
+            })
 
-    return Response({
-
-        "status": "success",
-
-        "devices": success
-
-    })
+    return Response(results)
 
 
 def service_worker(request):
