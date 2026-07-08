@@ -4,7 +4,8 @@ import { initializeApp } from
 import {
     getMessaging,
     getToken,
-    onMessage
+    onMessage,
+    isSupported
 } from
 "https://www.gstatic.com/firebasejs/11.0.1/firebase-messaging.js";
 
@@ -21,6 +22,20 @@ const app = initializeApp(firebaseConfig);
 const messaging = getMessaging(app);
 
 console.log("Current Permission:", Notification.permission);
+const supported = await isSupported();
+
+console.log("Firebase Messaging Supported:", supported);
+
+console.log("User Agent:", navigator.userAgent);
+
+console.log("Standalone Mode:", window.matchMedia('(display-mode: standalone)').matches);
+
+console.log("Notification Permission:", Notification.permission);
+
+if (!supported) {
+    console.log("Firebase Messaging is NOT supported on this device.");
+    return;
+}
 Notification.requestPermission()
 .then(async (permission) => {
 

@@ -9,6 +9,8 @@ from .services import process_hourly_consumption
 from django.shortcuts import render
 from .models import DeviceToken
 from .notification_service import check_alerts, send_notification
+from django.views.decorators.csrf import csrf_exempt
+
 
 
 @api_view(['POST'])
@@ -156,7 +158,7 @@ def current_level(request):
     })
 
 
-
+@csrf_exempt
 @api_view(["POST"])
 def save_device_token(request):
 
