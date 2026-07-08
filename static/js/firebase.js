@@ -40,8 +40,15 @@ async function registerDevice() {
 
         // Get the existing service worker registration
         console.log("Waiting for Service Worker...");
-        const registration = await navigator.serviceWorker.ready;
-        console.log("Service Worker Ready:", registration);
+        let registration = await navigator.serviceWorker.getRegistration("/static/");
+
+        if (!registration) {
+            registration = await navigator.serviceWorker.register(
+                "/static/service-worker.js"
+            );
+        }
+
+        console.log("Using Service Worker:", registration);
 
         const token = await getToken(messaging, {
 
