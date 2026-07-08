@@ -8,6 +8,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="manifest" href="/static/manifest.json">
   <meta name="theme-color" content="#2196f3">
+  <script type="module" src="/static/js/firebase.js"></script>
 
   <style>
     body {
@@ -83,7 +84,13 @@
 
 <script>
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/static/service-worker.js');
+    navigator.serviceWorker.register('/static/service-worker.js')
+        .then(registration => {
+            console.log("Service Worker registered");
+        })
+        .catch(error => {
+            console.error(error);
+        });
 }
 </script>
 

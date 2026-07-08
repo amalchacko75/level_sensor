@@ -12,3 +12,6 @@ venv/
 # OS files
 .DS_Store
 staticfiles/
+
+firebase-admin.json
+*-firebase-adminsdk-*.json

@@ -7,6 +7,8 @@ from django.db.models import Sum
 from .models import WaterEvent
 from .services import process_hourly_consumption
 from django.shortcuts import render
+from .models import DeviceToken
+from .notification_service import check_alerts, send_notification
 
 
 @api_view(['POST'])
@@ -20,6 +22,26 @@ def save_water_level(request):
 
     wifi_ssid = request.data.get("wifi_ssid")
     signal_strength = request.data.get("signal_strength")
+    alert = check_alerts(
+    float(percentage),
+    int(battery_percentage))
+
+    if alert:
+
+        title, body = alert
+
+        tokens = DeviceToken.objects.all()
+
+        for device in tokens:
+
+            try:
+                send_notification(
+                    device.token,
+                    title,
+                    body
+                )
+            except Exception:
+                pass
 
     WaterLevel.objects.create(
         percentage=percentage,
@@ -112,7 +134,6 @@ def dashboard(request):
 
 
 
-
 @api_view(['GET'])
 def current_level(request):
     latest = WaterLevel.objects.order_by('-created_at').first()
@@ -132,4 +153,67 @@ def current_level(request):
         "battery_voltage": latest.battery_voltage,
         "battery_percentage": latest.battery_percentage,
         "time": latest.created_at
+    })
+
+
+
+@api_view(["POST"])
+def save_device_token(request):
+
+    token = request.data.get("token")
+
+    if not token:
+        return Response(
+            {"error": "Token required"},
+            status=400
+        )
+
+    DeviceToken.objects.update_or_create(
+        token=token
+    )
+
+    return Response({
+        "status": "saved"
+    })
+
+
+
+@api_view(["POST"])
+def test_notification(request):
+
+    title = request.data.get(
+        "title",
+        "Water Monitor"
+    )
+
+    body = request.data.get(
+        "body",
+        "Notification Test"
+    )
+
+    tokens = DeviceToken.objects.all()
+
+    success = 0
+
+    for device in tokens:
+
+        try:
+            send_notification(
+                device.token,
+                title,
+                body
+            )
+
+            success += 1
+
+        except Exception as e:
+
+            print(e)
+
+    return Response({
+
+        "status": "success",
+
+        "devices": success
+
     })

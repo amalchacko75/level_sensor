@@ -52,3 +52,19 @@ class WaterEvent(models.Model):
 
     def __str__(self):
         return f"{self.event_type} at {self.start_time}"
+
+
+class DeviceToken(models.Model):
+    token = models.TextField(unique=True)
+
+    device_type = models.CharField(
+        max_length=20,
+        default="web"
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.device_type
