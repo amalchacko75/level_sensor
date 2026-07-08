@@ -16,11 +16,10 @@ const firebaseConfig = {
   messagingSenderId: "759777638228",
   appId: "1:759777638228:web:4c7d339052f80a43e07ac1"
 };
-console.log("Firebase JS Loaded");
+
 const app = initializeApp(firebaseConfig);
-console.log("Firebase Initialized");
 const messaging = getMessaging(app);
-console.log("Messaging Initialized");
+
 console.log("Current Permission:", Notification.permission);
 Notification.requestPermission()
 .then(async (permission) => {
@@ -36,10 +35,13 @@ Notification.requestPermission()
 
 async function registerDevice() {
 
+    console.log("registerDevice() started");
     try {
 
         // Get the existing service worker registration
+        console.log("Waiting for Service Worker...");
         const registration = await navigator.serviceWorker.ready;
+        console.log("Service Worker Ready:", registration);
 
         const token = await getToken(messaging, {
 
@@ -48,12 +50,13 @@ async function registerDevice() {
             serviceWorkerRegistration: registration
 
         });
+        console.log("Token Result:", token);
 
         if (!token) {
             console.log("No FCM token received.");
             return;
         }
-
+        console.log("Saving token...");
         console.log("FCM Token:", token);
 
         // Save the token to Django
@@ -70,7 +73,7 @@ async function registerDevice() {
             })
 
         });
-
+        console.log("Response Status:", response.status);
         const result = await response.json();
 
         console.log("Token saved:", result);
