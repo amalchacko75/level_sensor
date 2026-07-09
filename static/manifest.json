@@ -1,6 +1,6 @@
 {
   "name": "Water Tank Monitor",
-  "short_name": "WaterApp",
+  "short_name": "Level Sensor",
   "start_url": "/api/dashboard/",
   "scope": "/api/",
   "display": "standalone",

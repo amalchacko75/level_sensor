@@ -53,25 +53,25 @@ def send_notification(token, title, body):
 
 def check_alerts(level, battery):
 
-    if level >= 95:
+    if level >= 90:
 
         return (
             "Tank Full",
             "Water tank is almost full."
         )
 
-    if level <= 65:
+    if level <= 35:
 
         return (
             "Tank Empty",
             "Water level is very low."
         )
 
-    if battery <= 40:
+    if battery <= 20:
 
         return (
             "Battery Low",
-            "Battery is below 40%."
+            "Battery is below 20%."
         )
 
     return None
@@ -133,7 +133,7 @@ def send_status_report():
 
             device.token,
 
-            "💧 Water Tank Status",
+            "💧 Alert",
 
             body
 
