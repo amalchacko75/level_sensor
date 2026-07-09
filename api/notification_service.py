@@ -57,7 +57,7 @@ def check_alerts(level, battery):
     if not settings:
         return None
 
-    if level >= settings.tank_full_notification:
+    if level >= 90 and settings.tank_full_notification:
 
         return (
             "Tank Full",
