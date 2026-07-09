@@ -53,25 +53,29 @@ def send_notification(token, title, body):
 
 def check_alerts(level, battery):
 
-    if level >= 90:
+    settings = NotificationSettings.objects.first()
+    if not settings:
+        return None
+
+    if level >= settings.tank_full_notification:
 
         return (
             "Tank Full",
             "Water tank is almost full."
         )
 
-    if level <= 35:
+    if level <= 35 and settings.tank_empty_notification:
 
         return (
             "Tank Empty",
             "Water level is very low."
         )
 
-    if battery <= 20:
+    if battery <= settings.battery_low_percentage:
 
         return (
             "Battery Low",
-            "Battery is below 20%."
+            f"Battery is below {settings.battery_low_percentage}%."
         )
 
     return None
@@ -95,12 +99,12 @@ def build_status_message():
 
     if settings.include_water_level:
         lines.append(
-            f"💧 Water Level : {latest.percentage:.0f}%"
+            f"💧 Level : {latest.percentage:.0f}%"
         )
 
     if settings.include_daily_usage:
         lines.append(
-            f"🚰 Today's Usage : {usage:.1f} L"
+            f"🚰 Usage : {usage:.1f} L"
         )
 
     if settings.include_battery:
@@ -133,7 +137,7 @@ def send_status_report():
 
             device.token,
 
-            "💧 Alert",
+            "🔔 Alert ",
 
             body
 
