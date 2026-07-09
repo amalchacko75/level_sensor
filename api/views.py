@@ -166,6 +166,10 @@ def current_level(request):
 def save_device_token(request):
 
     token = request.data.get("token")
+    device_type = request.data.get(
+        "device_type",
+        "web"
+    )
 
     if not token:
         return Response(
@@ -174,7 +178,8 @@ def save_device_token(request):
         )
 
     DeviceToken.objects.update_or_create(
-        token=token
+        token=token,
+        defaults={"device_type": device_type}
     )
 
     return Response({

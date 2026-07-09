@@ -1,295 +1,505 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
-  <title>Water Monitor</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="Water Monitor">
 
-<link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+    <meta charset="UTF-8">
 
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="manifest" href="/static/manifest.json">
-  <meta name="theme-color" content="#2196f3">
+    <title>Water Tank Monitor</title>
 
-  <style>
-    body {
-      font-family: Arial;
-      margin: 0;
-      background: #f5f7fa;
-    }
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1">
 
-    .container {
-      padding: 15px;
-    }
+    <!-- PWA -->
+    <meta name="theme-color" content="#2196f3">
 
-    h2 {
-      text-align: center;
-    }
+    <meta name="apple-mobile-web-app-capable"
+          content="yes">
 
-    .card {
-      background: white;
-      border-radius: 12px;
-      padding: 15px;
-      margin-bottom: 15px;
-      box-shadow: 0 3px 10px rgba(0,0,0,0.08);
-    }
+    <meta name="apple-mobile-web-app-status-bar-style"
+          content="default">
 
-    .grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
+    <meta name="apple-mobile-web-app-title"
+          content="Water Monitor">
 
-    .stat {
-      text-align: center;
-    }
+    <link rel="manifest"
+          href="/static/manifest.json">
 
-    .stat h3 {
-      margin: 5px 0;
-      font-size: 22px;
-    }
+    <link rel="apple-touch-icon"
+          href="/static/icons/icon-192.png">
 
-    .event {
-      padding: 10px;
-      border-radius: 8px;
-      margin-bottom: 8px;
-      font-size: 14px;
-    }
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    .pump { background: #e3f2fd; color: #0d47a1; }
-    .leak { background: #ffebee; color: #b71c1c; }
-    .empty { background: #fff3e0; color: #e65100; }
-    progress{
-      width:100%;
-      height:18px;
-      border-radius:10px;
-    }
+    <style>
 
-    progress::-webkit-progress-bar{
-      background:#ddd;
-      border-radius:10px;
-    }
+        *{
+            box-sizing:border-box;
+        }
 
-    progress::-webkit-progress-value{
-        background:#4CAF50;
-        border-radius:10px;
-    }
+        body{
 
-    @media (max-width: 600px) {
-      .grid {
-        grid-template-columns: 1fr;
-      }
-    }
-  </style>
+            margin:0;
+
+            font-family:Arial,Helvetica,sans-serif;
+
+            background:#f3f6fb;
+
+            color:#222;
+        }
+
+        .container{
+
+            max-width:500px;
+
+            margin:auto;
+
+            padding:15px;
+        }
+
+        h2{
+
+            text-align:center;
+
+            margin-bottom:20px;
+        }
+
+        .card{
+
+            background:#fff;
+
+            border-radius:14px;
+
+            padding:18px;
+
+            margin-bottom:15px;
+
+            box-shadow:0 3px 10px rgba(0,0,0,.08);
+        }
+
+        .grid{
+
+            display:grid;
+
+            grid-template-columns:1fr 1fr;
+
+            gap:15px;
+        }
+
+        @media(max-width:600px){
+
+            .grid{
+
+                grid-template-columns:1fr;
+            }
+        }
+
+        .stat{
+
+            text-align:center;
+        }
+
+        .stat h3{
+
+            margin:0;
+
+            font-size:26px;
+        }
+
+        .stat p{
+
+            margin-top:10px;
+
+            color:#666;
+        }
+
+        progress{
+
+            width:100%;
+
+            height:18px;
+        }
+
+        #enableNotifications{
+
+            width:100%;
+
+            padding:14px;
+
+            border:none;
+
+            border-radius:8px;
+
+            background:#2196f3;
+
+            color:white;
+
+            font-size:16px;
+
+            cursor:pointer;
+        }
+
+        #enableNotifications:hover{
+
+            background:#1976d2;
+        }
+
+        .event{
+
+            padding:10px;
+
+            margin-bottom:10px;
+
+            border-radius:8px;
+
+            color:white;
+        }
+
+        .pump{
+
+            background:#2196f3;
+        }
+
+        .leak{
+
+            background:#f44336;
+        }
+
+        .empty{
+
+            background:#ff9800;
+        }
+
+    </style>
+
 </head>
+
 <body>
 
 <div class="container">
 
-  <h2>💧 Water Tank Monitor</h2>
+<h2>💧 Water Tank Monitor</h2>
 
-  <div style="text-align:center;margin-bottom:20px;">
-    <button id="enableNotifications"
-            style="
-                background:#2196f3;
-                color:white;
-                border:none;
-                padding:12px 24px;
-                border-radius:8px;
-                font-size:16px;
-                cursor:pointer;">
-        🔔 Enable Notifications
-    </button>
- </div>
+<!-- Notification Button -->
 
-  <div class="grid">
+<div class="card">
 
-  <div class="card stat">
-    <h3 id="currentLevel">--%</h3>
-    <p>💧 Current Level</p>
-  </div>
+<button id="enableNotifications">
 
-  <div class="card stat">
-    <h3 id="dailyUsage">-- L</h3>
-    <p>🚰 Today's Usage</p>
-  </div>
+🔔 Enable Notifications
 
-  <div class="card stat">
-    <h3 id="batteryPercent">--%</h3>
-    <p>🔋 Battery</p>
-
-    <progress
-      id="batteryBar"
-      value="0"
-      max="100"
-      style="width:100%;height:18px;">
-    </progress>
-  </div>
-
-  <div class="card stat">
-    <h3 id="batteryVoltage">-- V</h3>
-    <p>⚡ Battery Voltage</p>
-  </div>
+</button>
 
 </div>
 
-  <!-- Chart -->
-  <div class="card">
-    <h3>Usage Chart</h3>
-    <div style="height:300px;">
-      <canvas id="usageChart"></canvas>
-    </div>
-  </div>
+<!-- Stats -->
 
-  <!-- Events -->
-  <div class="card">
-    <h3>🚨 Recent Events</h3>
-    <div id="events"></div>
-  </div>
+<div class="grid">
+
+<div class="card stat">
+
+<h3 id="currentLevel">--%</h3>
+
+<p>💧 Current Level</p>
+
+</div>
+
+<div class="card stat">
+
+<h3 id="dailyUsage">-- L</h3>
+
+<p>🚰 Today's Usage</p>
+
+</div>
+
+<div class="card stat">
+
+<h3 id="batteryPercent">--%</h3>
+
+<p>🔋 Battery</p>
+
+<progress
+id="batteryBar"
+value="0"
+max="100"></progress>
+
+</div>
+
+<div class="card stat">
+
+<h3 id="batteryVoltage">-- V</h3>
+
+<p>⚡ Battery Voltage</p>
+
+</div>
+
+</div>
+
+<!-- Chart -->
+
+<div class="card">
+
+<h3>Today's Water Usage</h3>
+
+<div style="height:300px;">
+
+<canvas id="usageChart"></canvas>
+
+</div>
+
+</div>
+
+<!-- Events -->
+
+<div class="card">
+
+<h3>🚨 Recent Events</h3>
+
+<div id="events"></div>
+
+</div>
 
 </div>
 
 <script>
 
-// ✅ CORRECT IST conversion
-function convertToIST(hour) {
-  const now = new Date();
+function convertToIST(hour){
 
-  const utcDate = new Date(Date.UTC(
-    now.getUTCFullYear(),
-    now.getUTCMonth(),
-    now.getUTCDate(),
-    hour
-  ));
+    const now=new Date();
 
-  return utcDate.toLocaleTimeString("en-IN", {
-    timeZone: "Asia/Kolkata",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true
-  });
+    const utc=new Date(Date.UTC(
+
+        now.getUTCFullYear(),
+
+        now.getUTCMonth(),
+
+        now.getUTCDate(),
+
+        hour
+
+    ));
+
+    return utc.toLocaleTimeString(
+
+        "en-IN",
+
+        {
+
+            timeZone:"Asia/Kolkata",
+
+            hour:"2-digit",
+
+            minute:"2-digit",
+
+            hour12:true
+
+        }
+
+    );
+
 }
 
-// 📊 Hourly usage
-fetch('/api/hourly/')
-.then(res => res.json())
-.then(data => {
+/* -------------------------
+   Hourly Usage
+--------------------------*/
 
-  const labels = data.map(d => convertToIST(d.hour));
-  const values = data.map(d => d.usage_liters);
+fetch("/api/hourly/")
 
-  new Chart(document.getElementById('usageChart'), {
-    type: 'line',
-    options:{
-        responsive:true,
-        maintainAspectRatio:false
-    },
-    data: {
-      labels: labels,
-      datasets: [{
-        label: 'Water Usage (Liters)',
-        data: values,
-        borderWidth: 2,
-        tension: 0.4
-      }]
-    }
-  });
+.then(r=>r.json())
+
+.then(data=>{
+
+    const labels=data.map(
+
+        x=>convertToIST(x.hour)
+
+    );
+
+    const values=data.map(
+
+        x=>x.usage_liters
+
+    );
+
+    new Chart(
+
+        document.getElementById("usageChart"),
+
+        {
+
+            type:"line",
+
+            data:{
+
+                labels,
+
+                datasets:[{
+
+                    label:"Liters",
+
+                    data:values,
+
+                    borderWidth:2,
+
+                    tension:.4
+
+                }]
+
+            },
+
+            options:{
+
+                responsive:true,
+
+                maintainAspectRatio:false
+
+            }
+
+        }
+
+    );
 
 });
 
-// ✅ REAL-TIME water and battery levels
-fetch('/api/current-level/')
-.then(res => res.json())
-.then(data => {
+/* -------------------------
+   Current Level
+--------------------------*/
 
-    document.getElementById("currentLevel").innerText =
-        Math.round(data.level) + "%";
+fetch("/api/current-level/")
 
-    document.getElementById("batteryPercent").innerText =
-        Math.round(data.battery_percentage) + "%";
+.then(r=>r.json())
 
-    document.getElementById("batteryVoltage").innerText =
-        data.battery_voltage
-    ? Number(data.battery_voltage).toFixed(2)
-    : "--"
+.then(data=>{
 
-    const bar = document.getElementById("batteryBar");
+    currentLevel.innerHTML=Math.round(data.level)+"%";
 
-    bar.value = data.battery_percentage;
+    batteryPercent.innerHTML=Math.round(data.battery_percentage)+"%";
 
-    // Battery colour
-    if(data.battery_percentage >= 70){
-        bar.style.accentColor = "#28a745";
-    }
-    else if(data.battery_percentage >= 30){
-        bar.style.accentColor = "#ffc107";
-    }
-    else{
-        bar.style.accentColor = "#dc3545";
-    }
+    batteryVoltage.innerHTML=
+
+        Number(data.battery_voltage).toFixed(2);
+
+    batteryBar.value=data.battery_percentage;
 
 });
 
-// 📊 Daily usage
-fetch('/api/daily/')
-.then(res => res.json())
-.then(data => {
-  document.getElementById('dailyUsage').innerText =
-    Math.round(data.total_usage_liters) + " L";
+/* -------------------------
+   Daily Usage
+--------------------------*/
+
+fetch("/api/daily/")
+
+.then(r=>r.json())
+
+.then(data=>{
+
+    dailyUsage.innerHTML=
+
+    Math.round(data.total_usage_liters)+" L";
+
 });
 
-// 🚨 Events (FIXED IST)
-fetch('/api/events/')
-.then(res => res.json())
-.then(data => {
-  const container = document.getElementById('events');
+/* -------------------------
+   Events
+--------------------------*/
 
-  container.innerHTML = "";
+fetch("/api/events/")
 
-  data.reverse();
+.then(r=>r.json())
 
-  data.forEach(e => {
+.then(data=>{
 
-    let typeClass = "pump";
-    if (e.type === "leak") typeClass = "leak";
-    if (e.type === "empty") typeClass = "empty";
+    const container=document.getElementById("events");
 
-    // ✅ Proper IST conversion
-    let istTime = new Date(e.time).toLocaleTimeString("en-IN", {
-      timeZone: "Asia/Kolkata",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true
+    container.innerHTML="";
+
+    data.reverse();
+
+    data.forEach(e=>{
+
+        let cls="pump";
+
+        if(e.type==="leak")
+
+            cls="leak";
+
+        if(e.type==="empty")
+
+            cls="empty";
+
+        const time=new Date(e.time)
+
+        .toLocaleTimeString(
+
+            "en-IN",
+
+            {
+
+                timeZone:"Asia/Kolkata",
+
+                hour:"2-digit",
+
+                minute:"2-digit",
+
+                hour12:true
+
+            }
+
+        );
+
+        container.innerHTML+=`
+
+        <div class="event ${cls}">
+
+        <strong>${e.type.toUpperCase()}</strong>
+
+        <br>
+
+        🕒 ${time}
+
+        </div>
+
+        `;
+
     });
 
-    const div = document.createElement('div');
-    div.className = `event ${typeClass}`;
-
-    div.innerHTML = `
-      <strong>${e.type.replace("_", " ").toUpperCase()}</strong><br>
-      🕒 ${istTime}
-    `;
-
-    container.appendChild(div);
-  });
 });
 
 </script>
+
+<!-- Register Service Worker -->
+
 <script>
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/service-worker.js')
-        .then(registration => {
-            console.log("Service Worker registered", registration);
-        })
-        .catch(error => {
-            console.error(error);
-        });
+
+if("serviceWorker" in navigator){
+
+    navigator.serviceWorker
+
+    .register("/service-worker.js")
+
+    .then(reg=>{
+
+        console.log(
+
+            "Service Worker Registered",
+
+            reg
+
+        );
+
+    });
+
 }
+
 </script>
-<script type="module" src="/static/js/firebase.js"></script>
+
+<!-- Firebase -->
+
+<script
+type="module"
+src="/static/js/firebase.js">
+</script>
 
 </body>
+
 </html>

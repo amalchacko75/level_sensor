@@ -1,34 +1,207 @@
-const CACHE_NAME = "water-app-v1";
+/* ==========================================================
+   Water Tank Monitor
+   Service Worker
+   PWA + Firebase Cloud Messaging
+========================================================== */
 
-const urlsToCache = [
-  "/api/dashboard/",
+const CACHE_NAME = "water-monitor-v1";
+
+/* ----------------------------------------------------------
+   Files to cache
+---------------------------------------------------------- */
+
+const FILES_TO_CACHE = [
+
+    "/api/dashboard/",
+
+    "/static/manifest.json",
+
+    "/static/icons/icon-192.png",
+
+    "/static/icons/icon-512.png"
+
 ];
 
-// -----------------------
-// PWA Install
-// -----------------------
+/* ----------------------------------------------------------
+   Install
+---------------------------------------------------------- */
+
 self.addEventListener("install", event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(urlsToCache))
-  );
 
-  self.skipWaiting();
+    console.log("Service Worker Installed");
+
+    event.waitUntil(
+
+        caches.open(CACHE_NAME)
+
+        .then(cache => cache.addAll(FILES_TO_CACHE))
+
+    );
+
+    self.skipWaiting();
+
 });
 
-// -----------------------
-// Activate
-// -----------------------
+/* ----------------------------------------------------------
+   Activate
+---------------------------------------------------------- */
+
 self.addEventListener("activate", event => {
-  event.waitUntil(self.clients.claim());
+
+    console.log("Service Worker Activated");
+
+    event.waitUntil(
+
+        self.clients.claim()
+
+    );
+
 });
 
-// -----------------------
-// Fetch
-// -----------------------
+/* ----------------------------------------------------------
+   Fetch
+---------------------------------------------------------- */
+
 self.addEventListener("fetch", event => {
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => response || fetch(event.request))
-  );
+
+    if (event.request.method !== "GET") {
+
+        return;
+
+    }
+
+    event.respondWith(
+
+        caches.match(event.request)
+
+        .then(response => {
+
+            return response || fetch(event.request);
+
+        })
+
+    );
+
+});
+
+/* ==========================================================
+   Firebase
+========================================================== */
+
+importScripts(
+    "https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js"
+);
+
+importScripts(
+    "https://www.gstatic.com/firebasejs/11.0.1/firebase-messaging-compat.js"
+);
+
+/* ----------------------------------------------------------
+   Firebase Config
+---------------------------------------------------------- */
+
+firebase.initializeApp({
+
+  apiKey: "AIzaSyAs4g8X1d-2nBURR_NUCtKuxmKhROfLMDU",
+
+  authDomain: "watertankmonitor-21ef2.firebaseapp.com",
+
+  projectId: "watertankmonitor-21ef2",
+
+  storageBucket: "watertankmonitor-21ef2.firebasestorage.app",
+
+  messagingSenderId: "759777638228",
+
+  appId: "1:759777638228:web:4c7d339052f80a43e07ac1"
+
+});
+
+/* ----------------------------------------------------------
+   Messaging
+---------------------------------------------------------- */
+
+const messaging = firebase.messaging();
+
+/* ----------------------------------------------------------
+   Background Notification
+---------------------------------------------------------- */
+
+messaging.onBackgroundMessage(payload => {
+
+    console.log("Background Notification:", payload);
+
+    const notificationTitle =
+        payload.notification?.title || "Water Tank Monitor";
+
+    const notificationOptions = {
+
+        body:
+            payload.notification?.body || "",
+
+        icon:
+            "/static/icons/icon-192.png",
+
+        badge:
+            "/static/icons/icon-192.png",
+
+        vibrate: [200, 100, 200],
+
+        requireInteraction: true,
+
+        data: {
+
+            url: "/api/dashboard/"
+
+        }
+
+    };
+
+    self.registration.showNotification(
+
+        notificationTitle,
+
+        notificationOptions
+
+    );
+
+});
+
+/* ----------------------------------------------------------
+   Notification Click
+---------------------------------------------------------- */
+
+self.addEventListener("notificationclick", event => {
+
+    event.notification.close();
+
+    event.waitUntil(
+
+        clients.matchAll({
+
+            type: "window",
+
+            includeUncontrolled: true
+
+        })
+
+        .then(clientList => {
+
+            for (const client of clientList) {
+
+                if ("focus" in client) {
+
+                    client.navigate("/api/dashboard/");
+
+                    return client.focus();
+
+                }
+
+            }
+
+            return clients.openWindow("/api/dashboard/");
+
+        })
+
+    );
+
 });

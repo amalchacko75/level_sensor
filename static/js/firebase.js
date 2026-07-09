@@ -1,13 +1,15 @@
-import { initializeApp } from
-"https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
 
 import {
     getMessaging,
     getToken,
     onMessage,
     isSupported
-} from
-"https://www.gstatic.com/firebasejs/11.0.1/firebase-messaging.js";
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-messaging.js";
+
+/* -------------------------------------------------------
+   Firebase Configuration
+------------------------------------------------------- */
 
 const firebaseConfig = {
   apiKey: "AIzaSyAs4g8X1d-2nBURR_NUCtKuxmKhROfLMDU",
@@ -17,127 +19,238 @@ const firebaseConfig = {
   messagingSenderId: "759777638228",
   appId: "1:759777638228:web:4c7d339052f80a43e07ac1"
 };
+
+/* -------------------------------------------------------
+   Initialize Firebase
+------------------------------------------------------- */
+
 const supported = await isSupported();
+
 if (!supported) {
-    console.log("Firebase Messaging is not supported on this browser.");
-    throw new Error("Firebase Messaging not supported");
+
+    console.log("Firebase Messaging is not supported.");
+
+    throw new Error("Firebase Messaging not supported.");
+
 }
+
 const app = initializeApp(firebaseConfig);
+
 const messaging = getMessaging(app);
 
-console.log("Current Permission:", Notification.permission);
-console.log("User Agent:", navigator.userAgent);
+/* -------------------------------------------------------
+   Startup Logs
+------------------------------------------------------- */
 
-console.log("Standalone Mode:", window.matchMedia('(display-mode: standalone)').matches);
+console.log("Firebase Messaging Ready");
 
-console.log("Notification Permission:", Notification.permission);
+console.log("Permission:", Notification.permission);
 
-async function registerDevice() {
+console.log("Standalone:",
+    window.matchMedia("(display-mode: standalone)").matches);
 
-    console.log("registerDevice() started");
-    try {
+console.log("User Agent:",
+    navigator.userAgent);
 
-        // Get the existing service worker registration
-        console.log("Waiting for Service Worker...");
-        const registration = await navigator.serviceWorker.ready;
+/* -------------------------------------------------------
+   Wait for DOM
+------------------------------------------------------- */
 
-        console.log("Using Service Worker:", registration);
+document.addEventListener("DOMContentLoaded", () => {
 
-        const token = await getToken(messaging, {
-
-            vapidKey: "BI_8XFaZsJkkuYy_63aaBPo8Z5Upb4fApwICUumE6iiiwEYPWlRiDglKXe9etH4nW9tjopdvRffF8Pfirf7PxGE",
-
-            serviceWorkerRegistration: registration
-
-        });
-        console.log("Token Result:", token);
-
-        if (!token) {
-            console.log("No FCM token received.");
-            return;
-        }
-        console.log("Saving token...");
-        console.log("FCM Token:", token);
-
-        // Save the token to Django
-        const response = await fetch("/api/save-token/", {
-
-            method: "POST",
-
-            headers: {
-                "Content-Type": "application/json"
-            },
-
-            body: JSON.stringify({
-                token: token
-            })
-
-        });
-        console.log("Response Status:", response.status);
-        const result = await response.json();
-        if (!response.ok) {
-            console.error("Failed to save token:", result);
-            return;
-        }
-        console.log("Token saved:", result);
-
-    } catch (error) {
-
-        console.error("FCM Error:", error);
-
-    }
-
-}
-
-// Foreground notifications
-onMessage(messaging, (payload) => {
-
-    console.log("Foreground message:", payload);
-
-    new Notification(
-        payload.notification.title,
-        {
-            body: payload.notification.body,
-            icon: "/static/icon.png"
-        }
-    );
-
-});
-
-document.addEventListener("DOMContentLoaded", async () => {
-
-    console.log("DOM Ready");
-
-    const button = document.getElementById("enableNotifications");
+    const button =
+        document.getElementById("enableNotifications");
 
     if (!button) {
-        console.log("Button not found");
+
+        console.error("Notification button not found.");
+
         return;
+
     }
+
+    /*
+        Already allowed notifications
+    */
 
     if (Notification.permission === "granted") {
 
         button.style.display = "none";
 
-        await registerDevice();
+        registerDevice();
 
         return;
+
     }
+
+    /*
+        Ask permission
+    */
 
     button.onclick = async () => {
 
-        console.log("Button clicked");
+        const permission =
+            await Notification.requestPermission();
 
-        const permission = await Notification.requestPermission();
+        console.log(permission);
 
-        if (permission !== "granted")
+        if (permission !== "granted") {
+
+            alert("Notifications were denied.");
+
             return;
 
-        await registerDevice();
+        }
 
-        button.innerHTML = "✅ Notifications Enabled";
+        button.innerHTML =
+            "✅ Notifications Enabled";
+
         button.disabled = true;
+
+        await registerDevice();
 
     };
 
 });
+
+/* -------------------------------------------------------
+   Register Device
+------------------------------------------------------- */
+
+async function registerDevice() {
+
+    try {
+
+        console.log("Registering device...");
+
+        /*
+            Wait for Service Worker
+        */
+
+        const registration =
+            await navigator.serviceWorker.ready;
+
+        console.log("Service Worker Ready");
+
+        /*
+            Generate Token
+        */
+
+        const token = await getToken(messaging, {
+
+            vapidKey:
+                "BI_8XFaZsJkkuYy_63aaBPo8Z5Upb4fApwICUumE6iiiwEYPWlRiDglKXe9etH4nW9tjopdvRffF8Pfirf7PxGE",
+
+            serviceWorkerRegistration:
+                registration
+
+        });
+
+        if (!token) {
+
+            console.log("No token received.");
+
+            return;
+
+        }
+
+        console.log("FCM Token:", token);
+
+        /*
+            Save token to Django
+        */
+
+        const response =
+            await fetch("/api/save-token/", {
+
+                method: "POST",
+
+                headers: {
+
+                    "Content-Type":
+                        "application/json"
+
+                },
+
+                body: JSON.stringify({
+
+                    token: token,
+
+                    device_type: getDeviceType()
+
+                })
+
+            });
+
+        const result =
+            await response.json();
+
+        if (!response.ok) {
+
+            console.error(result);
+
+            return;
+
+        }
+
+        console.log("Device Registered");
+
+    }
+
+    catch (error) {
+
+        console.error(error);
+
+    }
+
+}
+
+/* -------------------------------------------------------
+   Foreground Notification
+------------------------------------------------------- */
+
+onMessage(messaging, payload => {
+
+    console.log("Foreground Notification");
+
+    console.log(payload);
+
+    new Notification(
+
+        payload.notification.title,
+
+        {
+
+            body:
+                payload.notification.body,
+
+            icon:
+                "/static/icons/icon-192.png",
+
+            badge:
+                "/static/icons/icon-192.png"
+
+        }
+
+    );
+
+});
+
+/* -------------------------------------------------------
+   Device Type
+------------------------------------------------------- */
+
+function getDeviceType() {
+
+    const ua =
+        navigator.userAgent.toLowerCase();
+
+    if (/iphone|ipad|ipod/.test(ua))
+        return "ios";
+
+    if (/android/.test(ua))
+        return "android";
+
+    return "web";
+
+}
