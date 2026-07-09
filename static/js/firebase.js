@@ -17,48 +17,20 @@ const firebaseConfig = {
   messagingSenderId: "759777638228",
   appId: "1:759777638228:web:4c7d339052f80a43e07ac1"
 };
-
+const supported = await isSupported();
+if (!supported) {
+    console.log("Firebase Messaging is not supported on this browser.");
+    throw new Error("Firebase Messaging not supported");
+}
 const app = initializeApp(firebaseConfig);
 const messaging = getMessaging(app);
 
 console.log("Current Permission:", Notification.permission);
-const supported = await isSupported();
-
-console.log("Firebase Messaging Supported:", supported);
-
 console.log("User Agent:", navigator.userAgent);
 
 console.log("Standalone Mode:", window.matchMedia('(display-mode: standalone)').matches);
 
 console.log("Notification Permission:", Notification.permission);
-
-if (!supported) {
-    console.log("Firebase Messaging is NOT supported on this device.");
-} else {
-
-    Notification.requestPermission().then(async (permission) => {
-
-        if (permission !== "granted") {
-            console.log("Notification permission denied.");
-            return;
-        }
-
-        await registerDevice();
-
-    });
-
-}
-Notification.requestPermission()
-.then(async (permission) => {
-
-    if (permission !== "granted") {
-        console.log("Notification permission denied.");
-        return;
-    }
-
-    await registerDevice();
-
-});
 
 async function registerDevice() {
 
@@ -67,13 +39,7 @@ async function registerDevice() {
 
         // Get the existing service worker registration
         console.log("Waiting for Service Worker...");
-        let registration = await navigator.serviceWorker.getRegistration();
-
-        if (!registration) {
-            registration = await navigator.serviceWorker.register(
-                "/service-worker.js"
-            );
-        }
+        const registration = await navigator.serviceWorker.ready;
 
         console.log("Using Service Worker:", registration);
 
@@ -109,7 +75,10 @@ async function registerDevice() {
         });
         console.log("Response Status:", response.status);
         const result = await response.json();
-
+        if (!response.ok) {
+            console.error("Failed to save token:", result);
+            return;
+        }
         console.log("Token saved:", result);
 
     } catch (error) {
@@ -132,5 +101,43 @@ onMessage(messaging, (payload) => {
             icon: "/static/icon.png"
         }
     );
+
+});
+
+document.addEventListener("DOMContentLoaded", async () => {
+
+    console.log("DOM Ready");
+
+    const button = document.getElementById("enableNotifications");
+
+    if (!button) {
+        console.log("Button not found");
+        return;
+    }
+
+    if (Notification.permission === "granted") {
+
+        button.style.display = "none";
+
+        await registerDevice();
+
+        return;
+    }
+
+    button.onclick = async () => {
+
+        console.log("Button clicked");
+
+        const permission = await Notification.requestPermission();
+
+        if (permission !== "granted")
+            return;
+
+        await registerDevice();
+
+        button.innerHTML = "✅ Notifications Enabled";
+        button.disabled = true;
+
+    };
 
 });

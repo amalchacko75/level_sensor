@@ -13,7 +13,6 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="manifest" href="/static/manifest.json">
   <meta name="theme-color" content="#2196f3">
-  <script type="module" src="/static/js/firebase.js"></script>
 
   <style>
     body {
@@ -86,24 +85,25 @@
     }
   </style>
 </head>
-
-<script>
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/service-worker.js')
-        .then(registration => {
-            console.log("Service Worker registered", registration);
-        })
-        .catch(error => {
-            console.error(error);
-        });
-}
-</script>
-
 <body>
 
 <div class="container">
 
   <h2>💧 Water Tank Monitor</h2>
+
+  <div style="text-align:center;margin-bottom:20px;">
+    <button id="enableNotifications"
+            style="
+                background:#2196f3;
+                color:white;
+                border:none;
+                padding:12px 24px;
+                border-radius:8px;
+                font-size:16px;
+                cursor:pointer;">
+        🔔 Enable Notifications
+    </button>
+ </div>
 
   <div class="grid">
 
@@ -278,6 +278,18 @@ fetch('/api/events/')
 });
 
 </script>
+<script>
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/service-worker.js')
+        .then(registration => {
+            console.log("Service Worker registered", registration);
+        })
+        .catch(error => {
+            console.error(error);
+        });
+}
+</script>
+<script type="module" src="/static/js/firebase.js"></script>
 
 </body>
 </html>
