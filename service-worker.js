@@ -10,17 +10,7 @@ const CACHE_NAME = "water-monitor-v1";
    Files to cache
 ---------------------------------------------------------- */
 
-const FILES_TO_CACHE = [
-
-    "/api/dashboard/",
-
-    "/static/manifest.json",
-
-    "/static/icons/icon-192.png",
-
-    "/static/icons/icon-512.png"
-
-];
+const FILES_TO_CACHE = [];
 
 /* ----------------------------------------------------------
    Install
@@ -29,14 +19,6 @@ const FILES_TO_CACHE = [
 self.addEventListener("install", event => {
 
     console.log("Service Worker Installed");
-
-    event.waitUntil(
-
-        caches.open(CACHE_NAME)
-
-        .then(cache => cache.addAll(FILES_TO_CACHE))
-
-    );
 
     self.skipWaiting();
 
@@ -51,9 +33,7 @@ self.addEventListener("activate", event => {
     console.log("Service Worker Activated");
 
     event.waitUntil(
-
         self.clients.claim()
-
     );
 
 });
@@ -65,21 +45,11 @@ self.addEventListener("activate", event => {
 self.addEventListener("fetch", event => {
 
     if (event.request.method !== "GET") {
-
         return;
-
     }
 
     event.respondWith(
-
-        caches.match(event.request)
-
-        .then(response => {
-
-            return response || fetch(event.request);
-
-        })
-
+        fetch(event.request)
     );
 
 });
