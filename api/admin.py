@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import DeviceToken, WaterLevel, HourlyWaterConsumption, WaterEvent
+from .models import DeviceToken, NotificationSettings, WaterLevel, HourlyWaterConsumption, WaterEvent
 
 
 @admin.register(WaterLevel)
@@ -63,3 +63,12 @@ class DeviceTokenAdmin(admin.ModelAdmin):
         return f"{obj.token[:30]}..."
 
     short_token.short_description = "Token"
+
+@admin.register(NotificationSettings)
+class NotificationSettingsAdmin(admin.ModelAdmin):
+
+    list_display = (
+        "enabled",
+        "report_interval",
+        "last_sent"
+    )

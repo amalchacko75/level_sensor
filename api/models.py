@@ -68,3 +68,49 @@ class DeviceToken(models.Model):
 
     def __str__(self):
         return self.device_type
+    
+class NotificationSettings(models.Model):
+
+    STATUS = [
+        (1, "Every 1 Minutes"),
+        (15, "Every 15 Minutes"),
+        (30, "Every 30 Minutes"),
+        (60, "Every Hour"),
+        (120, "Every 2 Hours"),
+        (360, "Every 6 Hours"),
+        (720, "Every 12 Hours"),
+        (1440, "Daily"),
+    ]
+
+    enabled = models.BooleanField(default=True)
+
+    report_interval = models.IntegerField(
+        choices=STATUS,
+        default=60
+    )
+
+    include_water_level = models.BooleanField(default=True)
+
+    include_daily_usage = models.BooleanField(default=True)
+
+    include_battery = models.BooleanField(default=True)
+
+    include_voltage = models.BooleanField(default=True)
+
+    include_wifi = models.BooleanField(default=False)
+
+    tank_full_notification = models.BooleanField(default=True)
+
+    tank_empty_notification = models.BooleanField(default=True)
+
+    battery_low_notification = models.BooleanField(default=True)
+
+    battery_low_percentage = models.IntegerField(default=40)
+
+    last_sent = models.DateTimeField(
+        null=True,
+        blank=True
+    )
+
+    def __str__(self):
+        return "Notification Settings"

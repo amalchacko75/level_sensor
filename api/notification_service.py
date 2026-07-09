@@ -1,11 +1,15 @@
 import firebase_admin
+from datetime import timedelta
 
 from firebase_admin import credentials
 from firebase_admin import messaging
-
+from django.utils import timezone
 from django.conf import settings
+from django.db.models import Sum
 
 import os
+
+from api.models import DeviceToken, HourlyWaterConsumption, NotificationSettings, WaterLevel
 
 if not firebase_admin._apps:
 
@@ -50,18 +54,98 @@ def check_alerts(level, battery):
             "Water tank is almost full."
         )
 
-    if level <= 15:
+    if level <= 65:
 
         return (
             "Tank Empty",
             "Water level is very low."
         )
 
-    if battery <= 20:
+    if battery <= 40:
 
         return (
             "Battery Low",
-            "Battery is below 20%."
+            "Battery is below 40%."
         )
 
     return None
+
+
+def build_status_message():
+
+    latest = WaterLevel.objects.order_by("-created_at").first()
+
+    today = timezone.now().date()
+
+    usage = HourlyWaterConsumption.objects.filter(
+        date=today
+    ).aggregate(
+        total=Sum("usage_liters")
+    )["total"] or 0
+
+    settings = NotificationSettings.objects.first()
+
+    lines = []
+
+    if settings.include_water_level:
+        lines.append(
+            f"💧 Water Level : {latest.percentage:.0f}%"
+        )
+
+    if settings.include_daily_usage:
+        lines.append(
+            f"🚰 Today's Usage : {usage:.1f} L"
+        )
+
+    if settings.include_battery:
+        lines.append(
+            f"🔋 Battery : {latest.battery_percentage:.0f}%"
+        )
+
+    if settings.include_voltage:
+        lines.append(
+            f"⚡ Voltage : {latest.battery_voltage:.2f}V"
+        )
+
+    if settings.include_wifi:
+        lines.append(
+            f"📶 WiFi : {latest.signal_strength} dBm"
+        )
+
+    return "\n".join(lines)
+
+
+def send_status_report():
+
+    body = build_status_message()
+
+    tokens = DeviceToken.objects.all()
+
+    for device in tokens:
+
+        send_notification(
+
+            device.token,
+
+            "💧 Water Tank Status",
+
+            body
+
+        )
+
+
+def should_send_report():
+
+    settings = NotificationSettings.objects.first()
+
+    if not settings.enabled:
+        return False
+
+    if settings.last_sent is None:
+        return True
+
+    diff = timezone.now() - settings.last_sent
+
+    return diff >= timedelta(
+        minutes=settings.report_interval
+    )

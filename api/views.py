@@ -3,7 +3,7 @@ from django.conf import settings
 from django.http import FileResponse
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .models import WaterLevel
+from .models import NotificationSettings, WaterLevel
 from .models import HourlyWaterConsumption
 from django.utils import timezone
 from django.db.models import Sum
@@ -11,12 +11,12 @@ from .models import WaterEvent
 from .services import process_hourly_consumption
 from django.shortcuts import render
 from .models import DeviceToken
-from .notification_service import check_alerts, send_notification
+from .notification_service import check_alerts, send_notification, send_status_report, should_send_report
 from django.views.decorators.csrf import csrf_exempt
 
 
 
-@api_view(['POST'])
+@api_view(["POST"])
 def save_water_level(request):
 
     percentage = request.data.get("percentage")
@@ -27,9 +27,22 @@ def save_water_level(request):
 
     wifi_ssid = request.data.get("wifi_ssid")
     signal_strength = request.data.get("signal_strength")
+
+    # 1. Save latest reading first
+    WaterLevel.objects.create(
+        percentage=percentage,
+        distance=distance,
+        battery_voltage=battery_voltage,
+        battery_percentage=battery_percentage,
+        wifi_ssid=wifi_ssid,
+        signal_strength=signal_strength
+    )
+
+    # 2. Send emergency alerts
     alert = check_alerts(
-    float(percentage),
-    int(battery_percentage))
+        float(percentage),
+        int(battery_percentage)
+    )
 
     if alert:
 
@@ -40,22 +53,27 @@ def save_water_level(request):
         for device in tokens:
 
             try:
+
                 send_notification(
                     device.token,
                     title,
                     body
                 )
-            except Exception:
-                pass
 
-    WaterLevel.objects.create(
-        percentage=percentage,
-        distance=distance,
-        battery_voltage=battery_voltage,
-        battery_percentage=battery_percentage,
-        wifi_ssid=wifi_ssid,
-        signal_strength=signal_strength
-    )
+            except Exception as e:
+
+                print(e)
+
+    # 3. Send periodic report
+    if should_send_report():
+
+        send_status_report()
+
+        settings = NotificationSettings.objects.first()
+
+        settings.last_sent = timezone.now()
+
+        settings.save(update_fields=["last_sent"])
 
     return Response({
         "status": "saved"
