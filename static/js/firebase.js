@@ -88,6 +88,7 @@ document.addEventListener("DOMContentLoaded", () => {
     */
 
     button.onclick = async () => {
+        console.log("Button clicked");
 
         const permission =
             await Notification.requestPermission();
@@ -101,6 +102,7 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
 
         }
+        console.log("Permission:", permission);
 
         button.innerHTML =
             "✅ Notifications Enabled";
@@ -119,87 +121,54 @@ document.addEventListener("DOMContentLoaded", () => {
 
 async function registerDevice() {
 
+    console.log("registerDevice() called");
+
     try {
 
-        console.log("Registering device...");
+        console.log("Waiting for service worker...");
 
-        /*
-            Wait for Service Worker
-        */
+        const registration = await navigator.serviceWorker.ready;
 
-        const registration =
-            await navigator.serviceWorker.ready;
+        console.log("Service Worker Ready", registration);
 
-        console.log("Service Worker Ready");
-
-        /*
-            Generate Token
-        */
+        console.log("Calling getToken()...");
 
         const token = await getToken(messaging, {
-
-            vapidKey:
-                "BI_8XFaZsJkkuYy_63aaBPo8Z5Upb4fApwICUumE6iiiwEYPWlRiDglKXe9etH4nW9tjopdvRffF8Pfirf7PxGE",
-
-            serviceWorkerRegistration:
-                registration
-
+            vapidKey: "BI_8XFaZsJkkuYy_63aaBPo8Z5Upb4fApwICUumE6iiiwEYPWlRiDglKXe9etH4nW9tjopdvRffF8Pfirf7PxGE",
+            serviceWorkerRegistration: registration
         });
 
+        console.log("getToken finished");
+
         if (!token) {
-
             console.log("No token received.");
-
             return;
-
         }
 
         console.log("FCM Token:", token);
 
-        /*
-            Save token to Django
-        */
+        console.log("Calling save-token API...");
 
-        const response =
-            await fetch("/api/save-token/", {
+        const response = await fetch("/api/save-token/", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                token: token,
+                device_type: getDeviceType()
+            })
+        });
 
-                method: "POST",
+        console.log("Response status:", response.status);
 
-                headers: {
+        const result = await response.json();
 
-                    "Content-Type":
-                        "application/json"
+        console.log(result);
 
-                },
+    } catch (err) {
 
-                body: JSON.stringify({
-
-                    token: token,
-
-                    device_type: getDeviceType()
-
-                })
-
-            });
-
-        const result =
-            await response.json();
-
-        if (!response.ok) {
-
-            console.error(result);
-
-            return;
-
-        }
-
-        console.log("Device Registered");
-
-    }
-
-    catch (error) {
-
-        console.error(error);
+        console.error("registerDevice failed:", err);
 
     }
 
