@@ -66,10 +66,14 @@ if (!button) {
 
     if (Notification.permission === "granted") {
 
-        button.style.display = "none";
+    button.style.display = "none";
 
-        registerDevice();
-
+    // Only register if we don't already have a saved token
+    if (!localStorage.getItem("fcm_token")) {
+            registerDevice();
+        } else {
+            console.log("Device already registered.");
+        }
     } else {
 
         button.onclick = async () => {
@@ -124,6 +128,14 @@ async function registerDevice() {
 
         console.log("FCM Token:", token);
 
+        // Check whether this token was already saved
+        const savedToken = localStorage.getItem("fcm_token");
+
+        if (savedToken === token) {
+            console.log("FCM token already registered.");
+            return;
+        }
+
         console.log("Calling save-token API...");
 
         const response = await fetch("/api/save-token/", {
@@ -142,6 +154,11 @@ async function registerDevice() {
         const result = await response.json();
 
         console.log(result);
+
+        if (response.ok) {
+            localStorage.setItem("fcm_token", token);
+            console.log("Token stored locally.");
+        }
 
     } catch (err) {
 

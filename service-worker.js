@@ -100,40 +100,7 @@ messaging.onBackgroundMessage(payload => {
 
     console.log("Background Notification:", payload);
 
-    const notificationTitle =
-        payload.notification?.title || "Water Tank Monitor";
-
-    const notificationOptions = {
-
-        body:
-            payload.notification?.body || "",
-
-        icon:
-            "/static/icons/icon-192.png",
-
-        badge:
-            "/static/icons/icon-192.png",
-
-        vibrate: [200, 100, 200],
-
-        requireInteraction: true,
-
-        data: {
-
-            url: "/api/dashboard/"
-
-        }
-
-    };
-
-    self.registration.showNotification(
-
-        notificationTitle,
-
-        notificationOptions
-
-    );
-
+    // Do NOT call showNotification() here
 });
 
 /* ----------------------------------------------------------

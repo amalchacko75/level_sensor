@@ -29,20 +29,26 @@ if not firebase_admin._apps:
 
     firebase_admin.initialize_app(cred)
 
+
 def send_notification(token, title, body):
 
     message = messaging.Message(
-
         notification=messaging.Notification(
             title=title,
             body=body
         ),
-
         token=token
-
     )
+    try:
+        response = messaging.send(message)
+        return response
 
-    return messaging.send(message)
+    except messaging.UnregisteredError:
+        DeviceToken.objects.filter(token=token).delete()
+    except Exception as e:
+        print(f"Failed to send notification: {e}")
+
+        return None
 
 
 def check_alerts(level, battery):
