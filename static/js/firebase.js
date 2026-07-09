@@ -56,22 +56,13 @@ console.log("User Agent:",
    Wait for DOM
 ------------------------------------------------------- */
 
-document.addEventListener("DOMContentLoaded", () => {
+const button = document.getElementById("enableNotifications");
 
-    const button =
-        document.getElementById("enableNotifications");
+console.log("Button:", button);
 
-    if (!button) {
-
-        console.error("Notification button not found.");
-
-        return;
-
-    }
-
-    /*
-        Already allowed notifications
-    */
+if (!button) {
+    console.error("Button not found");
+} else {
 
     if (Notification.permission === "granted") {
 
@@ -79,41 +70,27 @@ document.addEventListener("DOMContentLoaded", () => {
 
         registerDevice();
 
-        return;
+    } else {
+
+        button.onclick = async () => {
+
+            console.log("Button clicked");
+
+            const permission = await Notification.requestPermission();
+
+            console.log("Permission:", permission);
+
+            if (permission !== "granted")
+                return;
+
+            await registerDevice();
+
+            button.innerHTML = "✅ Notifications Enabled";
+            button.disabled = true;
+        };
 
     }
-
-    /*
-        Ask permission
-    */
-
-    button.onclick = async () => {
-        console.log("Button clicked");
-
-        const permission =
-            await Notification.requestPermission();
-
-        console.log(permission);
-
-        if (permission !== "granted") {
-
-            alert("Notifications were denied.");
-
-            return;
-
-        }
-        console.log("Permission:", permission);
-
-        button.innerHTML =
-            "✅ Notifications Enabled";
-
-        button.disabled = true;
-
-        await registerDevice();
-
-    };
-
-});
+}
 
 /* -------------------------------------------------------
    Register Device
