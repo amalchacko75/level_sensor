@@ -171,10 +171,7 @@ def is_wifi_connected():
     latest = WaterLevel.objects.order_by("-created_at").first()
 
     if latest is None:
-        return (
-            "Wi-Fi Offline",
-            "No sensor data has been received yet."
-        )
+        return None
 
     elapsed = timezone.now() - latest.created_at
 
