@@ -35,7 +35,7 @@ def detect_events(records):
             diff = record.percentage - prev.percentage
 
             # 🚰 Pump ON
-            if diff > 5:
+            if diff > 10:
                 liters = (diff / 100) * TANK_CAPACITY
 
                 create_event(
@@ -48,7 +48,7 @@ def detect_events(records):
                 )
 
             # 💧 Leak
-            elif diff < -5:
+            elif diff < -10:
                 drop = abs(diff)
                 liters = (drop / 100) * TANK_CAPACITY
 
