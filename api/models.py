@@ -107,6 +107,8 @@ class NotificationSettings(models.Model):
 
     battery_low_percentage = models.IntegerField(default=40)
 
+    wifi_offline_enabled = models.BooleanField(default=True)
+
     last_sent = models.DateTimeField(
         null=True,
         blank=True

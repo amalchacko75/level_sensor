@@ -159,3 +159,31 @@ def should_send_report():
     return diff >= timedelta(
         minutes=settings.report_interval
     )
+
+
+def is_wifi_connected():
+
+    settings = NotificationSettings.objects.first()
+
+    if not settings or not settings.wifi_offline_enabled:
+        return None
+
+    latest = WaterLevel.objects.order_by("-created_at").first()
+
+    if latest is None:
+        return (
+            "Wi-Fi Offline",
+            "No sensor data has been received yet."
+        )
+
+    elapsed = timezone.now() - latest.created_at
+
+    minutes = int(elapsed.total_seconds() / 60)
+
+    if minutes >= 5:
+        return (
+            "Wi-Fi Offline",
+            f"No data received for the last {minutes} minutes."
+        )
+
+    return None

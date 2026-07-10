@@ -25,6 +25,7 @@ class Migration(migrations.Migration):
                 ('tank_empty_notification', models.BooleanField(default=True)),
                 ('battery_low_notification', models.BooleanField(default=True)),
                 ('battery_low_percentage', models.IntegerField(default=40)),
+                ('wifi_offline_enabled', models.BooleanField(default=True)),
                 ('last_sent', models.DateTimeField(blank=True, null=True)),
             ],
         ),

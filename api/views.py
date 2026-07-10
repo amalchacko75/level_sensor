@@ -11,7 +11,7 @@ from .models import WaterEvent
 from .services import process_hourly_consumption
 from django.shortcuts import render
 from .models import DeviceToken
-from .notification_service import check_alerts, send_notification, send_status_report, should_send_report
+from .notification_service import check_alerts, is_wifi_connected, send_notification, send_status_report, should_send_report
 from django.views.decorators.csrf import csrf_exempt
 
 
@@ -138,13 +138,43 @@ def events_list(request):
 
 @api_view(['GET'])
 def run_processing(request):
+
     try:
+
         process_hourly_consumption()
+
+        # ----------------------------
+        # Wi-Fi Offline Check
+        # ----------------------------
+
+        alert = is_wifi_connected()
+
+        if alert:
+
+            settings = NotificationSettings.objects.first()
+
+            if settings and settings.wifi_offline_enabled:
+
+                title, body = alert
+
+                for device in DeviceToken.objects.all():
+
+                    try:
+                        send_notification(
+                            device.token,
+                            title,
+                            body
+                        )
+                    except Exception:
+                        pass
+
         return Response({
             "status": "success",
             "message": "Hourly processing completed"
         })
+
     except Exception as e:
+
         return Response({
             "status": "error",
             "message": str(e)
