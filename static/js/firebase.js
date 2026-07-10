@@ -188,10 +188,10 @@ onMessage(messaging, payload => {
                 payload.notification.body,
 
             icon:
-                "/static/icons/icon-192.svg",
+                "/static/icons/icon-192.png",
 
             badge:
-                "/static/icons/icon-192.svg"
+                "/static/icons/icon-192.png"
 
         }
 
