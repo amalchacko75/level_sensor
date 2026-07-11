@@ -26,6 +26,8 @@ class Migration(migrations.Migration):
                 ('battery_low_notification', models.BooleanField(default=True)),
                 ('battery_low_percentage', models.IntegerField(default=40)),
                 ('wifi_offline_enabled', models.BooleanField(default=True)),
+                ('tank_full_percentage', models.IntegerField(default=90)),
+                ('tank_empty_percentage', models.IntegerField(default=35)),
                 ('last_sent', models.DateTimeField(blank=True, null=True)),
             ],
         ),

@@ -101,7 +101,11 @@ class NotificationSettings(models.Model):
 
     tank_full_notification = models.BooleanField(default=True)
 
+    tank_full_percentage = models.IntegerField(default=90)
+
     tank_empty_notification = models.BooleanField(default=True)
+
+    tank_empty_percentage = models.IntegerField(default=35)
 
     battery_low_notification = models.BooleanField(default=True)
 
