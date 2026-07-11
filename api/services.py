@@ -163,3 +163,7 @@ def process_hourly_consumption():
     # 🔥 CLEAN OLD DATA (> 2 hours)
     two_hours_ago = now - timedelta(hours=2)
     WaterLevel.objects.filter(created_at__lt=two_hours_ago).delete()
+
+    # CLEAN WATER EVENTS
+    one_day_ago = now-timedelta(days=1)
+    WaterEvent.objects.filter(created_at__lt=one_day_ago).delete()
