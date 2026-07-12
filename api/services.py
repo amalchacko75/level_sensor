@@ -1,8 +1,11 @@
 from datetime import timedelta
+from statistics import mean
 from django.utils import timezone
 from .models import WaterLevel, HourlyWaterConsumption, WaterEvent
 
 TANK_CAPACITY = 1750  # liters
+
+EVENT_THRESHOLD = 10  # %
 
 
 # 🔥 SAFE EVENT CREATION (NO DUPLICATES)
@@ -28,79 +31,109 @@ def create_event(event_type, time, start, end, change_pct, change_liters):
 
 # 🔥 EVENT DETECTION (FIXED)
 def detect_events(records):
-    prev = None
 
-    for record in records:
-        if prev is not None:
-            diff = record.percentage - prev.percentage
+    if len(records) < 6:
+        return
 
-            # 🚰 Pump ON
-            if diff > 10:
-                liters = (diff / 100) * TANK_CAPACITY
+    for i in range(3, len(records) - 2):
 
-                create_event(
-                    'pump_on',
-                    record.created_at,
-                    prev.percentage,
-                    record.percentage,
-                    diff,
-                    liters
-                )
+        previous_avg = mean(
+            r.percentage
+            for r in records[i-3:i]
+        )
 
-            # 💧 Leak
-            elif diff < -10:
-                drop = abs(diff)
-                liters = (drop / 100) * TANK_CAPACITY
+        current_avg = mean(
+            r.percentage
+            for r in records[i:i+3]
+        )
 
-                create_event(
-                    'leak',
-                    record.created_at,
-                    prev.percentage,
-                    record.percentage,
-                    drop,
-                    liters
-                )
+        diff = current_avg - previous_avg
 
-        prev = record
+        # ----------------------------------
+        # Pump Filling
+        # ----------------------------------
+
+        if diff >= EVENT_THRESHOLD:
+
+            liters = (diff / 100) * TANK_CAPACITY
+
+            create_event(
+                "pump_on",
+                records[i].created_at,
+                round(previous_avg, 2),
+                round(current_avg, 2),
+                round(diff, 2),
+                round(liters, 2)
+            )
+
+        # ----------------------------------
+        # Water Consumption / Leak
+        # ----------------------------------
+
+        elif diff <= -EVENT_THRESHOLD:
+
+            drop = abs(diff)
+
+            liters = (drop / 100) * TANK_CAPACITY
+
+            create_event(
+                "leak",
+                records[i].created_at,
+                round(previous_avg, 2),
+                round(current_avg, 2),
+                round(drop, 2),
+                round(liters, 2)
+            )
 
 
 # 🔥 EMPTY TANK HANDLING (WITH COOLDOWN)
 def handle_empty_tank(records):
+
+    if not records:
+        return False
+
     consecutive_zeros = 0
 
-    for r in reversed(records):
-        if r.percentage <= 1:
+    for record in reversed(records):
+
+        if record.percentage <= 1:
+
             consecutive_zeros += 1
+
         else:
+
             break
 
-    if consecutive_zeros >= 5:
-        print("⚠️ Tank Empty Detected")
+    if consecutive_zeros < 5:
+        return False
 
-        # ⛔ cooldown: avoid duplicate empty events
-        last_empty = WaterEvent.objects.filter(
-            event_type='empty'
-        ).order_by('-start_time').first()
+    print("⚠ Tank Empty")
 
-        if last_empty and (timezone.now() - last_empty.start_time < timedelta(minutes=30)):
+    last_empty = WaterEvent.objects.filter(
+        event_type="empty"
+    ).order_by("-start_time").first()
+
+    if last_empty:
+
+        elapsed = timezone.now() - last_empty.start_time
+
+        if elapsed < timedelta(minutes=30):
             return True
 
-        create_event(
-            'empty',
-            records[-1].created_at,
-            0,
-            0,
-            0,
-            0
-        )
+    create_event(
+        "empty",
+        records[-1].created_at,
+        0,
+        0,
+        0,
+        0
+    )
 
-        # delete only processed records
-        ids = [r.id for r in records]
-        WaterLevel.objects.filter(id__in=ids).delete()
+    WaterLevel.objects.filter(
+        id__in=[r.id for r in records]
+    ).delete()
 
-        return True
-
-    return False
+    return True
 
 
 # 🔥 HOURLY / 10-MIN PROCESSING
@@ -125,23 +158,33 @@ def process_hourly_consumption():
     detect_events(records)
 
     # 🔥 USAGE CALCULATION
-    total_percentage_drop = 0
-    prev = None
+    # Average first 3 readings
+    start_level = mean(
+        r.percentage
+        for r in records[:3]
+    )
 
-    for record in records:
-        if prev is not None:
-            diff = prev.percentage - record.percentage
+    # Average last 3 readings
+    end_level = mean(
+        r.percentage
+        for r in records[-3:]
+    )
 
-            # ignore noise
-            if diff > 0.5:
-                total_percentage_drop += diff
+    percentage_drop = start_level - end_level
 
-        prev = record
+    # Ignore sensor fluctuations
+    if abs(percentage_drop) < 2:
+        percentage_drop = 0
 
-    if total_percentage_drop == 0:
-        return
+    # Ignore refill (pump running)
+    if percentage_drop < 0:
+        percentage_drop = 0
 
-    usage_liters = (total_percentage_drop / 100) * TANK_CAPACITY
+    usage_liters = (
+        percentage_drop / 100
+    ) * TANK_CAPACITY
+
+    usage_liters = (percentage_drop / 100) * TANK_CAPACITY
 
     # inside process_hourly_consumption()
 
@@ -149,16 +192,24 @@ def process_hourly_consumption():
         date=now.date(),
         hour=now.hour,
         defaults={
-            "start_level": records[0].percentage,
-            "end_level": records[-1].percentage,
-            "usage_percentage": total_percentage_drop,
-            "usage_liters": usage_liters,
+            "start_level": round(start_level, 2),
+            "end_level": round(end_level, 2),
+            "usage_percentage": round(percentage_drop, 2),
+            "usage_liters": round(usage_liters, 2),
         }
     )
 
     # 🔥 DELETE ONLY PROCESSED RECORDS
-    ids = [r.id for r in records]
-    WaterLevel.objects.filter(id__in=ids).delete()
+    if len(records) > 3:
+
+        ids = [
+            r.id
+            for r in records[:-3]
+        ]
+
+        WaterLevel.objects.filter(
+            id__in=ids
+        ).delete()
 
     # 🔥 CLEAN OLD DATA (> 2 hours)
     two_hours_ago = now - timedelta(hours=2)
