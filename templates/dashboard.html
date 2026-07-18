@@ -11,7 +11,7 @@
           content="width=device-width, initial-scale=1">
 
     <!-- PWA -->
-    <meta name="theme-color" content="#071A24">
+    <meta name="theme-color" content="#08182B">
 
     <meta name="apple-mobile-web-app-capable"
           content="yes">
@@ -28,8 +28,9 @@
     <link rel="apple-touch-icon"
           href="/static/icons/apple-touch-icon.png">
 
-    <link rel="icon" type="image/png" sizes="32x32" 
-          href="/static/favicon.ico">
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link rel="icon" href="/static/favicon.ico" sizes="any">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -42,15 +43,15 @@
     <style>
 
         :root{
-            --abyss:#071A24;
-            --deep:#0E2A38;
-            --surface:#12303F;
-            --surface-2:#173C4E;
-            --line:rgba(127,163,176,.14);
-            --aqua:#34D3E0;
-            --aqua-deep:#1B9AAF;
-            --foam:#EAF7F9;
-            --mist:#7FA3B0;
+            --abyss:#08182B;
+            --deep:#0E2138;
+            --surface:#142B48;
+            --surface-2:#1B3860;
+            --line:rgba(138,162,192,.16);
+            --aqua:#4F93E8;
+            --aqua-deep:#2F6FD0;
+            --foam:#EBF2FC;
+            --mist:#8CA4C4;
             --coral:#FF6B6B;
             --amber:#FFB454;
         }
@@ -63,7 +64,7 @@
             margin:0;
             font-family:"Space Grotesk",Arial,Helvetica,sans-serif;
             background:
-                radial-gradient(120% 60% at 50% -10%, #0C2A39 0%, var(--abyss) 60%);
+                radial-gradient(120% 60% at 50% -10%, #123057 0%, var(--abyss) 60%);
             background-attachment:fixed;
             color:var(--foam);
             -webkit-font-smoothing:antialiased;
@@ -142,14 +143,14 @@
             width:8px; height:8px;
             border-radius:50%;
             background:var(--aqua);
-            box-shadow:0 0 0 0 rgba(52,211,224,.6);
+            box-shadow:0 0 0 0 rgba(79,147,232,.6);
             animation:pulse 2.2s infinite;
         }
 
         @keyframes pulse{
-            0%{ box-shadow:0 0 0 0 rgba(52,211,224,.5); }
-            70%{ box-shadow:0 0 0 9px rgba(52,211,224,0); }
-            100%{ box-shadow:0 0 0 0 rgba(52,211,224,0); }
+            0%{ box-shadow:0 0 0 0 rgba(79,147,232,.5); }
+            70%{ box-shadow:0 0 0 9px rgba(79,147,232,0); }
+            100%{ box-shadow:0 0 0 0 rgba(79,147,232,0); }
         }
 
         /* ---------- Cards ---------- */
@@ -189,7 +190,7 @@
             width:112px;
             flex:0 0 112px;
             border-radius:16px 16px 12px 12px;
-            background:rgba(3,16,22,.55);
+            background:rgba(5,14,28,.55);
             border:2px solid var(--surface-2);
             overflow:hidden;
         }
@@ -306,7 +307,7 @@
             flex:1;
             height:12px;
             border-radius:4px;
-            background:rgba(3,16,22,.6);
+            background:rgba(5,14,28,.6);
             border:1px solid var(--surface-2);
             overflow:hidden;
         }
@@ -568,8 +569,8 @@ fetch("/api/hourly/")
     const ctx=canvas.getContext("2d");
 
     const grad=ctx.createLinearGradient(0,0,0,230);
-    grad.addColorStop(0,"rgba(52,211,224,.35)");
-    grad.addColorStop(1,"rgba(52,211,224,0)");
+    grad.addColorStop(0,"rgba(79,147,232,.35)");
+    grad.addColorStop(1,"rgba(79,147,232,0)");
 
     new Chart(canvas,{
         type:"line",
@@ -578,14 +579,14 @@ fetch("/api/hourly/")
             datasets:[{
                 label:"Liters",
                 data:values,
-                borderColor:"#34D3E0",
+                borderColor:"#4F93E8",
                 backgroundColor:grad,
                 fill:true,
                 borderWidth:2,
                 tension:.4,
                 pointRadius:0,
                 pointHoverRadius:5,
-                pointBackgroundColor:"#34D3E0"
+                pointBackgroundColor:"#4F93E8"
             }]
         },
         options:{
@@ -594,10 +595,10 @@ fetch("/api/hourly/")
             plugins:{
                 legend:{ display:false },
                 tooltip:{
-                    backgroundColor:"#0E2A38",
-                    titleColor:"#EAF7F9",
-                    bodyColor:"#EAF7F9",
-                    borderColor:"#1B9AAF",
+                    backgroundColor:"#0E2138",
+                    titleColor:"#EBF2FC",
+                    bodyColor:"#EBF2FC",
+                    borderColor:"#2F6FD0",
                     borderWidth:1,
                     displayColors:false,
                     padding:10,
@@ -606,13 +607,13 @@ fetch("/api/hourly/")
             },
             scales:{
                 x:{
-                    grid:{ color:"rgba(127,163,176,.10)" },
-                    ticks:{ color:"#7FA3B0", font:{ size:10 }, maxRotation:0, autoSkipPadding:14 }
+                    grid:{ color:"rgba(138,162,192,.12)" },
+                    ticks:{ color:"#8CA4C4", font:{ size:10 }, maxRotation:0, autoSkipPadding:14 }
                 },
                 y:{
                     beginAtZero:true,
-                    grid:{ color:"rgba(127,163,176,.10)" },
-                    ticks:{ color:"#7FA3B0", font:{ size:10 } }
+                    grid:{ color:"rgba(138,162,192,.12)" },
+                    ticks:{ color:"#8CA4C4", font:{ size:10 } }
                 }
             }
         }
@@ -643,7 +644,7 @@ fetch("/api/current-level/")
 
     const fill=document.getElementById("batteryFill");
     fill.style.width=data.battery_percentage+"%";
-    fill.style.background = batt<=15 ? "#FF6B6B" : batt<=30 ? "#FFB454" : "#34D3E0";
+    fill.style.background = batt<=15 ? "#FF6B6B" : batt<=30 ? "#FFB454" : "#4F93E8";
 
 })
 .catch(()=>{});

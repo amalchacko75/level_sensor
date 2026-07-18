@@ -138,6 +138,18 @@ def handle_empty_tank(records):
     return True
 
 
+def _moving_average(values, window=5):
+    """Trailing moving average to suppress sensor jitter."""
+    if window <= 1 or len(values) <= window:
+        return list(values)
+    out = []
+    for i in range(len(values)):
+        lo = max(0, i - window + 1)
+        chunk = values[lo:i + 1]
+        out.append(sum(chunk) / len(chunk))
+    return out
+
+
 # -------------------------------------------------------
 # PROCESS PREVIOUS HOUR
 # -------------------------------------------------------
@@ -145,26 +157,20 @@ def handle_empty_tank(records):
 def process_hourly_consumption():
 
     now = timezone.now()
-
-    current_hour = now.replace(
-        minute=0,
-        second=0,
-        microsecond=0
-    )
-
+    current_hour = now.replace(minute=0, second=0, microsecond=0)
     previous_hour = current_hour - timedelta(hours=1)
 
     # Prevent duplicate processing
     if HourlyWaterConsumption.objects.filter(
         date=previous_hour.date(),
-        hour=previous_hour.hour
+        hour=previous_hour.hour,
     ).exists():
         return
 
     records = list(
         WaterLevel.objects.filter(
             created_at__gte=previous_hour,
-            created_at__lt=current_hour
+            created_at__lt=current_hour,
         ).order_by("created_at")
     )
 
@@ -178,38 +184,35 @@ def process_hourly_consumption():
     # Event detection
     detect_events(records)
 
-    start_level = records[0].percentage
-    end_level = records[-1].percentage
+    # Smooth raw readings first — cancels symmetric sensor jitter
+    levels = [r.percentage for r in records]
+    smoothed = _moving_average(levels, window=5)
 
-    usage_percentage = 0
+    start_level = smoothed[0]
+    end_level = smoothed[-1]
 
-    reference = start_level
+    # Did the level ever rise past the deadband? -> a refill occurred
+    refill_happened = any(
+        b - a > NOISE_THRESHOLD for a, b in zip(smoothed, smoothed[1:])
+    )
 
-    for record in records[1:]:
+    if not refill_happened:
+        # No refill: consumption is simply the net drop. No loop, no leak.
+        usage_percentage = max(0.0, start_level - end_level)
+    else:
+        # Refill(s) occurred: accumulate only the downward segments.
+        usage_percentage = 0.0
+        reference = smoothed[0]
+        for current in smoothed[1:]:
+            diff = reference - current
+            if abs(diff) < NOISE_THRESHOLD:
+                continue
+            if diff > 0:                 # level fell -> water consumed
+                usage_percentage += diff
+            # level rose -> refill/pump, not consumption
+            reference = current          # always advance the reference
 
-        current = record.percentage
-
-        diff = reference - current
-
-        # Ignore small fluctuations
-        if abs(diff) < NOISE_THRESHOLD:
-            continue
-
-        # Water consumption
-        if diff > 0:
-            usage_percentage += diff
-
-        # Tank refilled (pump running)
-        else:
-            # Reset reference after refill
-            reference = current
-            continue
-
-        reference = current
-
-    usage_liters = (
-        usage_percentage / 100.0
-    ) * TANK_CAPACITY
+    usage_liters = (usage_percentage / 100.0) * TANK_CAPACITY
 
     HourlyWaterConsumption.objects.create(
         date=previous_hour.date(),
