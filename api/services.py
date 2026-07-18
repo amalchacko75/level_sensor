@@ -136,85 +136,119 @@ def handle_empty_tank(records):
     return True
 
 
-# 🔥 HOURLY / 10-MIN PROCESSING
-def process_hourly_consumption():
-    now = timezone.now()
-    ten_minutes_ago = now - timedelta(minutes=60)
+# -------------------------------------------------------
+# USAGE CALCULATION
+# -------------------------------------------------------
 
-    queryset = WaterLevel.objects.filter(
-        created_at__gte=ten_minutes_ago
-    ).order_by("created_at")[:200]
-
-    records = list(queryset)
-
-    # 🔥 CHECK EMPTY FIRST
-    if handle_empty_tank(records):
-        return
+def calculate_usage(records):
 
     if len(records) < 2:
-        return
+        return 0, 0, 0, 0
 
-    # 🔥 EVENT DETECTION
-    detect_events(records)
-
-    # 🔥 USAGE CALCULATION
-    # Average first 3 readings
     start_level = mean(
         r.percentage
         for r in records[:3]
     )
 
-    # Average last 3 readings
     end_level = mean(
         r.percentage
         for r in records[-3:]
     )
 
-    percentage_drop = start_level - end_level
+    usage_percentage = 0
 
-    # Ignore sensor fluctuations
-    if abs(percentage_drop) < 2:
-        percentage_drop = 0
+    reference = records[0].percentage
 
-    # Ignore refill (pump running)
-    if percentage_drop < 0:
-        percentage_drop = 0
+    for record in records[1:]:
+
+        diff = reference - record.percentage
+
+        # Ignore sensor noise
+        if abs(diff) < 2:
+            continue
+
+        # Consumption
+        if diff > 0:
+
+            usage_percentage += diff
+            reference = record.percentage
+
+        # Pump filled tank
+        else:
+
+            reference = record.percentage
 
     usage_liters = (
-        percentage_drop / 100
+        usage_percentage / 100
     ) * TANK_CAPACITY
 
-    usage_liters = (percentage_drop / 100) * TANK_CAPACITY
-
-    # inside process_hourly_consumption()
-
-    HourlyWaterConsumption.objects.update_or_create(
-        date=now.date(),
-        hour=now.hour,
-        defaults={
-            "start_level": round(start_level, 2),
-            "end_level": round(end_level, 2),
-            "usage_percentage": round(percentage_drop, 2),
-            "usage_liters": round(usage_liters, 2),
-        }
+    return (
+        round(start_level, 2),
+        round(end_level, 2),
+        round(usage_percentage, 2),
+        round(usage_liters, 2),
     )
 
-    # 🔥 DELETE ONLY PROCESSED RECORDS
-    if len(records) > 3:
 
-        ids = [
-            r.id
-            for r in records[:-3]
-        ]
+# -------------------------------------------------------
+# PROCESS PREVIOUS HOUR
+# -------------------------------------------------------
 
+def process_hourly_consumption():
+
+    now = timezone.now()
+
+    current_hour = now.replace(
+        minute=0,
+        second=0,
+        microsecond=0
+    )
+
+    previous_hour = current_hour - timedelta(hours=1)
+
+    # Already processed?
+    if HourlyWaterConsumption.objects.filter(
+        date=previous_hour.date(),
+        hour=previous_hour.hour
+    ).exists():
+        return
+
+    records = list(
         WaterLevel.objects.filter(
-            id__in=ids
-        ).delete()
+            created_at__gte=previous_hour,
+            created_at__lt=current_hour
+        ).order_by("created_at")
+    )
 
-    # 🔥 CLEAN OLD DATA (> 2 hours)
-    two_hours_ago = now - timedelta(hours=2)
-    WaterLevel.objects.filter(created_at__lt=two_hours_ago).delete()
+    if len(records) < 2:
+        return
 
-    # CLEAN WATER EVENTS
-    one_day_ago = now-timedelta(days=1)
-    WaterEvent.objects.filter(created_at__lt=one_day_ago).delete()
+    handle_empty_tank(records)
+
+    detect_events(records)
+
+    (
+        start_level,
+        end_level,
+        usage_percentage,
+        usage_liters,
+    ) = calculate_usage(records)
+
+    HourlyWaterConsumption.objects.create(
+        date=previous_hour.date(),
+        hour=previous_hour.hour,
+        start_level=start_level,
+        end_level=end_level,
+        usage_percentage=usage_percentage,
+        usage_liters=usage_liters,
+    )
+
+    # Keep raw data for 2 days
+    WaterLevel.objects.filter(
+        created_at__lt=now - timedelta(days=2)
+    ).delete()
+
+    # Keep events for 30 days
+    WaterEvent.objects.filter(
+        created_at__lt=now - timedelta(days=30)
+    ).delete()
