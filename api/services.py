@@ -7,6 +7,8 @@ TANK_CAPACITY = 1750  # liters
 
 EVENT_THRESHOLD = 10  # %
 
+NOISE_THRESHOLD = 0.5  # Ignore sensor fluctuation below 0.5%
+
 
 # 🔥 SAFE EVENT CREATION (NO DUPLICATES)
 def create_event(event_type, time, start, end, change_pct, change_liters):
@@ -137,60 +139,6 @@ def handle_empty_tank(records):
 
 
 # -------------------------------------------------------
-# USAGE CALCULATION
-# -------------------------------------------------------
-
-def calculate_usage(records):
-
-    if len(records) < 2:
-        return 0, 0, 0, 0
-
-    start_level = mean(
-        r.percentage
-        for r in records[:3]
-    )
-
-    end_level = mean(
-        r.percentage
-        for r in records[-3:]
-    )
-
-    usage_percentage = 0
-
-    reference = records[0].percentage
-
-    for record in records[1:]:
-
-        diff = reference - record.percentage
-
-        # Ignore sensor noise
-        if abs(diff) < 2:
-            continue
-
-        # Consumption
-        if diff > 0:
-
-            usage_percentage += diff
-            reference = record.percentage
-
-        # Pump filled tank
-        else:
-
-            reference = record.percentage
-
-    usage_liters = (
-        usage_percentage / 100
-    ) * TANK_CAPACITY
-
-    return (
-        round(start_level, 2),
-        round(end_level, 2),
-        round(usage_percentage, 2),
-        round(usage_liters, 2),
-    )
-
-
-# -------------------------------------------------------
 # PROCESS PREVIOUS HOUR
 # -------------------------------------------------------
 
@@ -206,7 +154,7 @@ def process_hourly_consumption():
 
     previous_hour = current_hour - timedelta(hours=1)
 
-    # Already processed?
+    # Prevent duplicate processing
     if HourlyWaterConsumption.objects.filter(
         date=previous_hour.date(),
         hour=previous_hour.hour
@@ -223,24 +171,53 @@ def process_hourly_consumption():
     if len(records) < 2:
         return
 
-    handle_empty_tank(records)
+    # Empty tank detection
+    if handle_empty_tank(records):
+        return
 
+    # Event detection
     detect_events(records)
 
-    (
-        start_level,
-        end_level,
-        usage_percentage,
-        usage_liters,
-    ) = calculate_usage(records)
+    start_level = records[0].percentage
+    end_level = records[-1].percentage
+
+    usage_percentage = 0
+
+    reference = start_level
+
+    for record in records[1:]:
+
+        current = record.percentage
+
+        diff = reference - current
+
+        # Ignore small fluctuations
+        if abs(diff) < NOISE_THRESHOLD:
+            continue
+
+        # Water consumption
+        if diff > 0:
+            usage_percentage += diff
+
+        # Tank refilled (pump running)
+        else:
+            # Reset reference after refill
+            reference = current
+            continue
+
+        reference = current
+
+    usage_liters = (
+        usage_percentage / 100.0
+    ) * TANK_CAPACITY
 
     HourlyWaterConsumption.objects.create(
         date=previous_hour.date(),
         hour=previous_hour.hour,
-        start_level=start_level,
-        end_level=end_level,
-        usage_percentage=usage_percentage,
-        usage_liters=usage_liters,
+        start_level=round(start_level, 2),
+        end_level=round(end_level, 2),
+        usage_percentage=round(usage_percentage, 2),
+        usage_liters=round(usage_liters, 2),
     )
 
     # Keep raw data for 2 days
