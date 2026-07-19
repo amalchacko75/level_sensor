@@ -203,20 +203,30 @@ def build_status_message(latest=None, usage=None, conf=None):
             date=today
         ).aggregate(total=Sum("usage_liters"))["total"] or 0
 
-    lines = []
+    parts = []
 
     if conf.include_water_level:
-        lines.append(f"💧 Level: {latest.percentage:.0f}%")
+        parts.append(f"{latest.percentage:.0f}% full")
     if conf.include_daily_usage:
-        lines.append(f"🚰 Used today: {usage:.1f} L")
-    if conf.include_battery:
-        lines.append(f"🔋 Battery: {latest.battery_percentage:.0f}%")
-    if conf.include_voltage:
-        lines.append(f"⚡ Voltage: {latest.battery_voltage:.2f} V")
-    if conf.include_wifi:
-        lines.append(f"📶 WiFi: {latest.signal_strength} dBm")
+        parts.append(f"{usage:.1f} L used today")
 
-    return "\n".join(lines)
+    # battery + voltage read better together than as two separate items
+    if conf.include_battery and conf.include_voltage:
+        parts.append(
+            f"battery {latest.battery_percentage:.0f}% "
+            f"({latest.battery_voltage:.2f} V)"
+        )
+    elif conf.include_battery:
+        parts.append(f"battery {latest.battery_percentage:.0f}%")
+    elif conf.include_voltage:
+        parts.append(f"{latest.battery_voltage:.2f} V")
+
+    if conf.include_wifi:
+        parts.append(f"Wi-Fi {latest.signal_strength} dBm")
+
+    # one flowing line instead of a congested stack.
+    # swap " · " for ", " if you prefer a sentence feel.
+    return " · ".join(parts)
 
 
 def send_status_report():
