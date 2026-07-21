@@ -230,5 +230,5 @@ def process_hourly_consumption():
 
     # Keep events for 30 days
     WaterEvent.objects.filter(
-        created_at__lt=now - timedelta(days=30)
+        created_at__lt=now - timedelta(days=1)
     ).delete()
